@@ -3,7 +3,11 @@ package byte_lib;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import static java.nio.ByteBuffer.allocate;
+import static java.nio.ByteBuffer.allocateDirect;
 
 public class ByteStringInputStream extends InputStream {
     private final InputStream in;
@@ -16,6 +20,16 @@ public class ByteStringInputStream extends InputStream {
     public ByteStringInputStream(InputStream in) {
         this.in = in;
         buf = new byte[1024*64];
+    }
+
+    public int countBytes() throws IOException {
+        int sz = 0;
+        while (!eof) {
+            readMore();
+            sz += bufSz;
+            bufSz = 0;
+        }
+        return sz;
     }
 
     public int countLines() {
@@ -131,5 +145,17 @@ public class ByteStringInputStream extends InputStream {
         } catch (IOException e) {
             throw new IOError(e);
         }
+    }
+
+    public ByteBuffer readAll(boolean direct, int sz) throws IOException {
+        ByteBuffer result = direct ? allocateDirect(sz) : allocate(sz);
+        while (!eof) {
+            readMore();
+            result.put(buf, 0, bufSz);
+            sz += bufSz;
+            bufSz = 0;
+        }
+        result.flip();
+        return result;
     }
 }

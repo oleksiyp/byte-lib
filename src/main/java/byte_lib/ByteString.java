@@ -5,18 +5,17 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 public class ByteString implements Comparable<ByteString> {
     public static final ByteString EMPTY = new ByteString(ByteBuffer.allocate(0));
 
     private final ByteBuffer buffer;
-    private final int pos;
-    private final int end;
 
     public ByteString(ByteBuffer buffer) {
         this.buffer = buffer;
-        this.pos = buffer.position();
-        this.end = buffer.limit();
     }
 
     public static ByteString bs(String s) {
@@ -65,8 +64,10 @@ public class ByteString implements Comparable<ByteString> {
 
     public ByteString copyOf(boolean direct) {
         ByteBuffer buf = direct ? ByteBuffer.allocateDirect(length()) : ByteBuffer.allocate(length());
+        int pos = buffer.position();
+        int end = buffer.limit();
         buf.put(buffer);
-        resetPos();
+        buffer.position(pos).limit(end);
         buf.position(0).limit(length());
         return new ByteString(buf);
     }
@@ -118,13 +119,11 @@ public class ByteString implements Comparable<ByteString> {
     @Override
     public String toString() {
         byte buf[] = new byte[length()];
+        int pos = buffer.position();
+        int end = buffer.limit();
         buffer.get(buf);
-        resetPos();
-        return new String(buf, 0, buf.length);
-    }
-
-    private void resetPos() {
         buffer.position(pos).limit(end);
+        return new String(buf, 0, buf.length);
     }
 
     public void writeTo(PrintStream out) {
@@ -145,6 +144,7 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public ByteString substring(int from, int to) {
+        int pos = buffer.position();
         ByteBuffer buf = buffer.duplicate();
         buf.position(pos + from).limit(pos + to);
         return new ByteString(buf);
@@ -194,18 +194,19 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public int indexOf(byte ch) {
-        for (int i = 0; i < length(); i++) {
-            if (byteAt(i) == ch) {
-                return i;
-            }
-        }
-        return -1;
+        return indexOf(ch, 0);
     }
 
     public int indexOf(ByteString str, int off) {
-        for (int i = off; i <= length() - str.length(); i++) {
+        if (str.length() == 1) {
+            return indexOf(str.byteAt(0), off);
+        }
+
+        int strLen = str.length();
+        int wholeLen = length() - strLen;
+        for (int i = off; i <= wholeLen; i++) {
             boolean found = true;
-            for (int j = 0; j < str.length(); j++) {
+            for (int j = 0; j < strLen; j++) {
                 if (byteAt(i + j) != str.byteAt(j)) {
                     found = false;
                     break;
@@ -218,34 +219,74 @@ public class ByteString implements Comparable<ByteString> {
         return -1;
     }
 
+    public int indexOf(byte ch, int off) {
+        int wholeLen = length();
+        for (int i = off; i < wholeLen; i++) {
+            if (byteAt(i) == ch) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public ByteString substring(int start) {
         return substring(start, length());
     }
 
     public ByteString[] split(ByteString str) {
+        List<ByteString> arr =
+                splitAccumulate(str, new ArrayList<>(), (a, s) -> {
+                    a.add(s);
+                    return a;
+                });
+        return arr.toArray(new ByteString[arr.size()]);
+    }
+
+    public <T> T splitAccumulate(ByteString str,
+                                 T initial,
+                                 BiFunction<T, ByteString, T> op) {
+        Object []val = new Object[] {initial};
+        splitIterate(str, (s) -> {
+            val[0] = op.apply((T) val[0], s);
+        });
+        return (T) val[0];
+    }
+
+    public void splitIterate(ByteString str, Consumer<ByteString> it) {
+        splitIterateIdx(str, (start, end) -> it.accept(substring(start, end)));
+    }
+
+    public void splitIterateIdx(ByteString str, BiConsumer<Integer, Integer> it) {
         int start = 0;
-        List<ByteString> arr = new ArrayList<>();
         while (start < length()) {
             int idx = indexOf(str, start);
+
             if (idx == -1) {
                 if (start < length()) {
-                    arr.add(substring(start, length()));
+                    it.accept(start, length());
                 }
                 break;
             }
-            arr.add(substring(start, idx));
+            it.accept(start, idx);
             start = idx + str.length();
         }
-        return arr.toArray(new ByteString[arr.size()]);
     }
 
     public ByteString append(ByteString otherStr) {
         ByteBuffer buf = ByteBuffer.allocateDirect(length() + otherStr.length());
-        buf.put(buffer)
-                .put(otherStr.buffer);
-        resetPos();
-        otherStr.resetPos();
+        int pos = buffer.position();
+        int end = buffer.limit();
+
+        int otherPos = otherStr.buffer.position();
+        int otherEnd = otherStr.buffer.limit();
+
+        buf.put(buffer).put(otherStr.buffer);
+
+        buffer.position(pos).limit(end);
+        otherStr.buffer.position(otherPos).limit(otherEnd);
+
         buf.position(0).limit(length() + otherStr.length());
+
         return new ByteString(buf);
     }
 
@@ -290,4 +331,7 @@ public class ByteString implements Comparable<ByteString> {
         return (int) toLong();
     }
 
+    public static ByteString bb(ByteBuffer buf) {
+        return new ByteString(buf);
+    }
 }

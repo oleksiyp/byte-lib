@@ -3,11 +3,11 @@ package wikipageviews;
 import byte_lib.ByteString;
 import byte_lib.ByteStringMap;
 import byte_lib.ByteStringInputStream;
+import byte_lib.OneChunkByteStringMap;
 
 import java.io.*;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.nio.ByteBuffer;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 import static byte_lib.ByteString.bs;
@@ -15,29 +15,26 @@ import static byte_lib.ByteString.bs;
 public class PageViewsTopExtractor {
     public static final ByteString SEPARATOR = bs(" ");
     public static final ByteString SEPARATOR2 = bs(":");
+    public static final ByteString NEW_LINE = bs("\n");
 
     public static void main(String[] args) throws InterruptedException, IOException {
-        int cnt = tableIn().countLines();
-        System.out.println("Reading table " + cnt);
-        Progress progress = new Progress(cnt);
-        Map<ByteString, ByteString> interlinks = new ByteStringMap<>(cnt);
+        System.out.println("Counting memory to allocate");
+        int cnt = tableIn().countBytes();
 
-        try (ByteStringInputStream in = tableIn()) {
-            ByteString line;
-            while ((line = in.nextLine()) != null) {
-                progress.progress();
-                ByteString[] arr = line.split(SEPARATOR);
-                interlinks.put(arr[0].copyOf(false), arr[1].copyOf(false));
-            }
-        }
+        System.out.println("Reading table to mem " + cnt);
+        ByteString interlinksStr = ByteString.bb(tableIn().readAll(false, cnt));
+
+        System.out.println("Allocating map");
+        OneChunkByteStringMap interlinks = new OneChunkByteStringMap(interlinksStr, NEW_LINE, SEPARATOR);
 
         PriorityQueue<PageViewRecord> topK = new PriorityQueue<>(
                 Comparator.comparingInt(PageViewRecord::getViews));
 
         int k = 10000;
+        System.out.println("Counting lines in pageviews");
         cnt = pageviewIn().countLines();
         System.out.println("Reading pageviews " + cnt);
-        progress = new Progress(cnt);
+        Progress progress = new Progress(cnt);
         try (ByteStringInputStream in = pageviewIn()) {
             ByteString line;
             while ((line = in.nextLine()) != null) {
@@ -51,7 +48,7 @@ public class PageViewsTopExtractor {
         }
 
         try (PrintStream out = new PrintStream("result.txt")) {
-            while (topK.isEmpty()) {
+            while (!topK.isEmpty()) {
                 PageViewRecord record = topK.remove();
                 ByteString page = record.getProject()
                         .append(SEPARATOR2)
