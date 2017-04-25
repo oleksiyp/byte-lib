@@ -22,8 +22,6 @@ public class OneChunkByteStringMap {
         allocateCapacity(nRecords[0]);
 
         indexChunk();
-
-        n = 10;
     }
 
     private void indexChunk() {
@@ -100,16 +98,9 @@ public class OneChunkByteStringMap {
         return isChunkKey(key1, key2, 0, key2.length());
     }
 
-    static int n = 10;
     private boolean isChunkKey(int key1, ByteString key2, int start, int keyLen) {
         if (chunk.length() - key1 < keyLen + keyValueSeparator.length()) {
             return false;
-        }
-
-        if (n-- > 0) {
-            if (key2.substring(start, start + keyLen).startsWith(ByteString.bs("it:"))) {
-                System.out.println(key2.substring(start, start + keyLen) + " " + chunk.substring(key1, key1 + keyLen));
-            }
         }
 
         for (int i = 0; i < keyLen; i++) {

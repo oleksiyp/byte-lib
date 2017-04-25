@@ -2,6 +2,8 @@ package wikipageviews;
 
 import byte_lib.ByteString;
 
+import java.util.OptionalDouble;
+
 import static byte_lib.ByteString.bs;
 
 public class PageViewRecord {
@@ -10,6 +12,7 @@ public class PageViewRecord {
     private final ByteString title;
     private final int views;
     private final int size;
+    private ByteString concept;
 
     public PageViewRecord(ByteString project, ByteString title, int views, int size) {
         this.project = project;
@@ -24,6 +27,20 @@ public class PageViewRecord {
                 text[1].copyOf(),
                 text[2].toInt(),
                 text[3].toInt());
+    }
+
+    public OptionalDouble getScore(MainPageRate mainPageRate) {
+        if (mainPageRate.isCalculated()) {
+            return OptionalDouble.of(100.0 * getViews() / mainPageRate.get());
+        } else {
+            return OptionalDouble.empty();
+        }
+    }
+
+    public ByteString getFullTitle() {
+        return getProject()
+                .append(PageViewsTopExtractor.SEPARATOR2)
+                .append(getTitle());
     }
 
     public ByteString getProject() {
@@ -41,6 +58,15 @@ public class PageViewRecord {
     public int getSize() {
         return size;
     }
+
+    public ByteString getConcept() {
+        return concept;
+    }
+
+    public void setConcept(ByteString concept) {
+        this.concept = concept;
+    }
+
 
     public ByteString format() {
         return project
