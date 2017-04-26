@@ -1,10 +1,13 @@
 package byte_lib;
 
-import java.io.IOError;
-import java.io.IOException;
-import java.io.InputStream;
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
+import wikipageviews.Progress;
+
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.zip.GZIPInputStream;
 
 import static java.nio.ByteBuffer.allocate;
 import static java.nio.ByteBuffer.allocateDirect;
@@ -23,13 +26,13 @@ public class ByteStringInputStream extends InputStream {
     }
 
     public int countBytes() throws IOException {
-        int sz = 0;
+        long sz = 0;
         while (!eof) {
             readMore();
             sz += bufSz;
             bufSz = 0;
         }
-        return sz;
+        return (int) sz;
     }
 
     public int countLines() {
@@ -147,15 +150,43 @@ public class ByteStringInputStream extends InputStream {
         }
     }
 
-    public ByteBuffer readAll(boolean direct, int sz) throws IOException {
+    public ByteBuffer readAll(boolean direct, int sz, Progress progress) throws IOException {
+        progress = Progress.voided(progress);
+
         ByteBuffer result = direct ? allocateDirect(sz) : allocate(sz);
         while (!eof) {
             readMore();
             result.put(buf, 0, bufSz);
             sz += bufSz;
             bufSz = 0;
+            progress.progress(bufSz);
         }
         result.flip();
         return result;
+    }
+
+    public static ByteStringInputStream file(String path) throws IOException {
+        return file(new File(path));
+    }
+
+    public static ByteStringInputStream file(File file) throws IOException {
+        InputStream in = new FileInputStream(file);
+        if (file.getName().endsWith(".gz")) {
+            in = new GZIPInputStream(in);
+        } else if (file.getName().endsWith(".bz2")) {
+            in = new BZip2CompressorInputStream(in);
+        }
+        return new ByteStringInputStream(in);
+    }
+
+    public void readLines(Consumer<ByteString> lines) {
+        ByteString line;
+        while ((line = nextLine()) != null) {
+            lines.accept(line);
+        }
+    }
+
+    public static ByteStringInputStream string(String str) {
+        return new ByteStringInputStream(new ByteArrayInputStream(str.getBytes()));
     }
 }

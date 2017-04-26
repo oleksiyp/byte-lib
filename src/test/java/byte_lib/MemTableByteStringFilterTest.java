@@ -5,10 +5,10 @@ import org.junit.Test;
 import static byte_lib.ByteString.bs;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ByteStringFilterTest {
+public class MemTableByteStringFilterTest {
     @Test
     public void test1() throws Exception {
-        ByteStringFilter filter = new ByteStringFilter();
+        ByteStringFilter filter = new MemTableByteStringFilter();
 
         filter.add(bs("aaa"));
         filter.add(bs("bbb"));

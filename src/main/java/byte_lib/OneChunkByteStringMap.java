@@ -16,16 +16,15 @@ public class OneChunkByteStringMap {
         this.itemSeparator = itemSeparator;
         this.keyValueSeparator = keyValueSeparator;
 
-        int []nRecords = new int[1];
-        chunk.splitIterateIdx(itemSeparator, (s, e) -> nRecords[0]++);
+        int records = chunk.howMuch(itemSeparator);
 
-        allocateCapacity(nRecords[0]);
+        allocateCapacity(records);
 
         indexChunk();
     }
 
     private void indexChunk() {
-        chunk.splitIterateIdx(itemSeparator, this::put0);
+        chunk.iterateIdx(itemSeparator, this::put0);
     }
 
     private void allocateCapacity(int capacity) {

@@ -1,6 +1,8 @@
 package byte_lib;
 
-import java.io.PrintStream;
+import wikipageviews.Progress;
+
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -9,8 +11,13 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
+import static byte_lib.ByteStringInputStream.file;
+import static java.lang.String.format;
+
 public class ByteString implements Comparable<ByteString> {
     public static final ByteString EMPTY = new ByteString(ByteBuffer.allocate(0));
+    private static final ByteString SEPARATOR = bs(" ");
+    private static final ByteString NEW_LINE = bs("\n");
 
     private final ByteBuffer buffer;
 
@@ -127,7 +134,9 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public void writeTo(PrintStream out) {
-        out.write(buffer.array(), buffer.position(), length());
+        for (int i = 0; i < length(); i++) {
+            out.write(byteAt(i));
+        }
     }
 
     public byte byteAt(int index) {
@@ -246,17 +255,17 @@ public class ByteString implements Comparable<ByteString> {
                                  T initial,
                                  BiFunction<T, ByteString, T> op) {
         Object []val = new Object[] {initial};
-        splitIterate(str, (s) -> {
+        iterate(str, (s) -> {
             val[0] = op.apply((T) val[0], s);
         });
         return (T) val[0];
     }
 
-    public void splitIterate(ByteString str, Consumer<ByteString> it) {
-        splitIterateIdx(str, (start, end) -> it.accept(substring(start, end)));
+    public void iterate(ByteString str, Consumer<ByteString> it) {
+        iterateIdx(str, (start, end) -> it.accept(substring(start, end)));
     }
 
-    public void splitIterateIdx(ByteString str, BiConsumer<Integer, Integer> it) {
+    public void iterateIdx(ByteString str, BiConsumer<Integer, Integer> it) {
         int start = 0;
         while (start < length()) {
             int idx = indexOf(str, start);
@@ -333,5 +342,74 @@ public class ByteString implements Comparable<ByteString> {
 
     public static ByteString bb(ByteBuffer buf) {
         return new ByteString(buf);
+    }
+
+    public ByteString fields(ByteString separator, int start, int end) {
+        if (start > end) throw new IllegalArgumentException("start");
+        int []r = new int[] { 0,  0, length() };
+        iterateIdx(separator, (s, e) -> {
+            if (r[0] == start) r[1] = s;
+            if (r[0] == end) r[2] = e;
+            r[0]++;
+        });
+        return substring(r[1], r[2]);
+    }
+
+    public ByteString fields(int start, int end) {
+        return fields(SEPARATOR, start, end);
+    }
+
+    public ByteString field(ByteString separator, int i) {
+        return fields(separator, i, i);
+    }
+
+    public ByteString field(int i) {
+        return fields(SEPARATOR, i, i);
+    }
+
+    public ByteString firstField() {
+        return fields(0, 0);
+    }
+
+    public ByteString firstTwoFields() {
+        return fields(0, 1);
+    }
+
+    public ByteString firstThreeFields() {
+        return fields(0, 2);
+    }
+
+    public static ByteString load(String path) throws IOException {
+        return load(new File(path), null, true);
+    }
+
+    public static ByteString load(String path, Progress progress) throws IOException {
+        return load(new File(path), progress, true);
+    }
+
+    public static ByteString load(File file, Progress progress, boolean direct) throws IOException {
+        String name = file.getName();
+        progress = Progress.voided(progress);
+
+        progress.message(format("Counting size of '%s'", name));
+        int nBytes;
+        try (ByteStringInputStream in = file(file)) {
+            nBytes = in.countBytes();
+        }
+
+        progress.reset(nBytes);
+        progress.message(format("Allocating %s for '%s'", Bytes.sizeToString(nBytes), name));
+        try (ByteStringInputStream in = file(file)){
+            ByteBuffer buf = in.readAll(direct, nBytes, progress);
+            return ByteString.bb(buf);
+        } finally {
+            progress.message(format("Done reading '%s'!", name));
+        }
+    }
+
+    public int howMuch(ByteString str) {
+        int []n = new int[1];
+        iterateIdx(str, (s, e) -> n[0]++);
+        return n[0];
     }
 }

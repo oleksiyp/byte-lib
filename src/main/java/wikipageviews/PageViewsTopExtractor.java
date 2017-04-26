@@ -20,11 +20,8 @@ public class PageViewsTopExtractor {
     public static final ByteString NEW_LINE = bs("\n");
 
     public static void main(String[] args) throws InterruptedException, IOException {
-        System.out.println("Counting memory to allocate");
-        int cnt = tableIn().countBytes();
-
-        System.out.println("Reading table to mem " + cnt);
-        ByteString interlinksStr = ByteString.bb(tableIn().readAll(false, cnt));
+        System.out.println("Reading table.txt.gz to mem");
+        ByteString interlinksStr = ByteString.load("table.txt.gz");
 
         System.out.println("Allocating map");
         OneChunkByteStringMap interlinks = new OneChunkByteStringMap(interlinksStr, NEW_LINE, SEPARATOR);
@@ -34,15 +31,17 @@ public class PageViewsTopExtractor {
 
         int k = 1000;
         System.out.println("Counting lines in pageviews");
-        cnt = pageviewIn().countLines();
+        int cnt = pageviewIn().countLines();
+
         System.out.println("Reading pageviews " + cnt);
-        Progress progress = new Progress(cnt);
+        Progress progress = Progress.toConsole(System.out);
+
         MainPageRate mainPageRate = new MainPageRate();
         try (ByteStringInputStream in = pageviewIn()) {
             ByteString line;
             ByteStringBuilder buf = new ByteStringBuilder();
             while ((line = in.nextLine()) != null) {
-                progress.progress();
+                progress.progress(1);
                 PageViewRecord record = PageViewRecord.valueOf(line);
 
                 buf.clear()
