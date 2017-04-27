@@ -1,9 +1,6 @@
 package wikipageviews;
 
-import byte_lib.ByteString;
-import byte_lib.ByteStringBuilder;
-import byte_lib.ByteStringInputStream;
-import byte_lib.OneChunkByteStringMap;
+import byte_lib.*;
 
 import java.io.FileInputStream;
 import java.io.IOException;

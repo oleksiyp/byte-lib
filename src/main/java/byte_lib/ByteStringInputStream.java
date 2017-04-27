@@ -1,7 +1,6 @@
 package byte_lib;
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import wikipageviews.Progress;
 
 import java.io.*;
 import java.nio.ByteBuffer;

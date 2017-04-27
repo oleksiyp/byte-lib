@@ -1,14 +1,11 @@
 package byte_lib;
 
-import wikipageviews.Progress;
-
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import static byte_lib.ByteStringInputStream.file;
@@ -16,8 +13,8 @@ import static java.lang.String.format;
 
 public class ByteString implements Comparable<ByteString> {
     public static final ByteString EMPTY = new ByteString(ByteBuffer.allocate(0));
-    private static final ByteString SEPARATOR = bs(" ");
-    private static final ByteString NEW_LINE = bs("\n");
+    public static final ByteString SEPARATOR = bs(" ");
+    public static final ByteString NEW_LINE = bs("\n");
 
     private final ByteBuffer buffer;
 
@@ -242,23 +239,15 @@ public class ByteString implements Comparable<ByteString> {
         return substring(start, length());
     }
 
-    public ByteString[] split(ByteString str) {
-        List<ByteString> arr =
-                splitAccumulate(str, new ArrayList<>(), (a, s) -> {
-                    a.add(s);
-                    return a;
-                });
-        return arr.toArray(new ByteString[arr.size()]);
-    }
+    public ByteString[] split(ByteString separator) {
+        int n = 10;
+        if (length() > 1024 * 512) {
+            n = howMuch(separator);
+        }
+        List<ByteString> arr = new ArrayList<>(n);
+        iterate(separator, arr::add);
 
-    public <T> T splitAccumulate(ByteString str,
-                                 T initial,
-                                 BiFunction<T, ByteString, T> op) {
-        Object []val = new Object[] {initial};
-        iterate(str, (s) -> {
-            val[0] = op.apply((T) val[0], s);
-        });
-        return (T) val[0];
+        return arr.toArray(new ByteString[arr.size()]);
     }
 
     public void iterate(ByteString str, Consumer<ByteString> it) {

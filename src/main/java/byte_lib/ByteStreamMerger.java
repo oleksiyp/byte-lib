@@ -4,17 +4,18 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static java.util.Comparator.comparing;
 
 public class ByteStreamMerger {
-    private final ByteStringInputStream[] in;
+    private final Supplier<ByteString>[] in;
     private final boolean[] takeNext;
     private final ByteString[] lines;
     private Comparator<ByteString> streamCmp;
     private Comparator<ByteString> recordCmp;
 
-    ByteStreamMerger(ByteStringInputStream ...in) {
+    ByteStreamMerger(Supplier ...in) {
         this.in = in;
         lines = new ByteString[in.length];
         takeNext = new boolean[in.length];
@@ -25,7 +26,7 @@ public class ByteStreamMerger {
 
     public ByteString peekLine(int idx) {
         if (takeNext[idx]) {
-            lines[idx] = in[idx].nextLine();
+            lines[idx] = in[idx].get();
             takeNext[idx] = false;
         }
         return lines[idx];
@@ -41,8 +42,11 @@ public class ByteStreamMerger {
     }
 
     private boolean checkAreSame() {
+        if (lines[0] == null) {
+            return false;
+        }
         for (int i = 0; i < lines.length - 1; i++) {
-            if (lines[i] == null || lines[i + 1] == null)  {
+            if (lines[i + 1] == null)  {
                 return false;
             }
             if (recordCmp.compare(lines[i], lines[i+1]) != 0) {
@@ -86,7 +90,34 @@ public class ByteStreamMerger {
         merge(arr -> consumer.accept(arr[0], arr[1]));
     }
 
-    public static ByteStreamMerger of(ByteStringInputStream ...in) {
+    public void mergeThree(ByteStringTriConsumer consumer) {
+        merge(arr -> consumer.accept(arr[0], arr[1], arr[2]));
+    }
+
+    public static ByteStreamMerger of(Supplier<ByteString> one, Supplier<ByteString> two) {
+        return new ByteStreamMerger(one, two);
+    }
+
+    public static ByteStreamMerger of(Supplier<ByteString> one, Supplier<ByteString> two, Supplier<ByteString> three) {
+        return new ByteStreamMerger(one, two, three);
+    }
+
+    public static ByteStreamMerger of(Supplier<ByteString>... in) {
         return new ByteStreamMerger(in);
+    }
+
+    public static Supplier<ByteString> seq(ByteString ...arr) {
+        return new Supplier<ByteString>() {
+            int i = 0;
+
+            @Override
+            public ByteString get() {
+                return i < arr.length ? arr[i++] : null;
+            }
+        };
+    }
+
+    public interface ByteStringTriConsumer {
+        void accept(ByteString a, ByteString b, ByteString c);
     }
 }

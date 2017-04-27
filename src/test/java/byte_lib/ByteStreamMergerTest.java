@@ -1,8 +1,5 @@
 package byte_lib;
 
-import byte_lib.ByteStreamMerger;
-import byte_lib.ByteString;
-import byte_lib.ByteStringInputStream;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -18,7 +15,8 @@ public class ByteStreamMergerTest {
         ByteStringInputStream in2 = string("abc 6\nghi 5\n");
 
         List<Integer> result = new ArrayList<>();
-        new ByteStreamMerger(in1, in2).merge((arr) -> result.add(sumFirstFields(arr[0], arr[1])));
+        new ByteStreamMerger(in1::nextLine, in2::nextLine)
+                .merge((arr) -> result.add(sumFirstFields(arr[0], arr[1])));
 
         assertThat(result).containsExactly(11, 7);
     }
@@ -29,7 +27,8 @@ public class ByteStreamMergerTest {
         ByteStringInputStream in2 = string("abc 6\ndef 3\nghi 5\n");
 
         List<Integer> result = new ArrayList<>();
-        new ByteStreamMerger(in1, in2).merge((arr) -> result.add(sumFirstFields(arr[0], arr[1])));
+        new ByteStreamMerger(in1::nextLine, in2::nextLine)
+                .merge((arr) -> result.add(sumFirstFields(arr[0], arr[1])));
 
         assertThat(result).containsExactly(11, 4, 7);
     }

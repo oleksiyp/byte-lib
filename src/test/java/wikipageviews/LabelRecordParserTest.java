@@ -2,6 +2,8 @@ package wikipageviews;
 
 import byte_lib.ByteString;
 import org.junit.Test;
+import dbpedia.LabelRecord;
+import dbpedia.LabelRecordParser;
 
 import static byte_lib.ByteString.bs;
 import static org.assertj.core.api.Assertions.assertThat;

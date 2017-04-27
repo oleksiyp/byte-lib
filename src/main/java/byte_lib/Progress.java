@@ -1,4 +1,4 @@
-package wikipageviews;
+package byte_lib;
 
 import java.io.PrintStream;
 
