@@ -36,7 +36,7 @@ class MemTableByteStringFilter implements ByteStringFilter {
 
     @Override
     public boolean contains(ByteString str, ByteString... other) {
-        long hash = hasher.getHash(str, other);
+        long hash = hasher.hashCode(str, other);
 
         for (int n = 0; n < table.length; n++) {
 
@@ -58,7 +58,7 @@ class MemTableByteStringFilter implements ByteStringFilter {
         if (bucketsFilled << 2 > table.length) {
             rehash();
         }
-        long hash = hasher.getHash(str, other);
+        long hash = hasher.hashCode(str, other);
         return add0(hash);
     }
 

@@ -14,7 +14,7 @@ public class SimpleByteStringHashTest {
         ByteStringHash hash = new ByteStringHash.SimpleByteStringHash();
         Set<Long> hashes = new HashSet<>();
         for (int i = 0; i < 65536; i++) {
-            long l = hash.n(i).getHash(bs("test"));
+            long l = hash.n(i).hashCode(bs("test"));
             hashes.add(l);
         }
         assertThat(hashes).hasSize(65536);

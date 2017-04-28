@@ -4,58 +4,58 @@ import byte_lib.ByteString;
 import byte_lib.Progress;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.GZIPOutputStream;
 
+import static byte_lib.ByteString.EMPTY;
 import static byte_lib.ByteString.bs;
-import static dbpedia.LabelRecordParser.PARSER;
+import static dbpedia.Compressed.snappyPrintStream;
 
 public class LabelsExtractor {
+    public static final File IN_DIR = new File("data/labels");
+    public static final String OUT_FILE = "labels.txt.snappy";
+
     public static final ByteString SEPARATOR = bs(" ");
-    private static final ByteString NEW_LINE = bs("\n");
+    public static final ByteString LABEL = bs("http://www.w3.org/2000/01/rdf-schema#label");
+    public static final ByteString LABEL_SUBJECT_START = bs("http://");
+    public static final ByteString LABEL_SUBJECT_MIDDLE = bs(".dbpedia.org/resource/");
 
     public static void main(String[] args) throws InterruptedException, IOException {
-        File path = new File("data/labels");
-
         Progress progress = Progress.toConsole(System.out);
 
-        List<DbpediaFile> files = Stream.of(
-                new File("labels_uk.tql.bz2")
-        )
-//                Optional.ofNullable(path.listFiles()).orElse(new File[0]))
-                .map(DbpediaFile::new)
-                .peek((f) -> f.setProgress(progress))
-                .limit(3)
-                .collect(Collectors.toList());
+        List<DbpediaFile> files = DbpediaFile.dirFiles(
+                IN_DIR,
+                progress);
 
-        try (PrintStream out = new PrintStream(
-                new GZIPOutputStream(
-                        new FileOutputStream("labels.txt.gz")))) {
-            System.out.println("Writing labels.txt.gz");
-
-            files.forEach(file ->
-                    file.countLines().readRecords(PARSER::parse, (record) -> {
-                record.writeTo(out);
-            }));
+        try (PrintStream out = snappyPrintStream(OUT_FILE, progress)) {
+            files.forEach(file -> {
+                file.reportNFile()
+                        .countLines()
+                        .readRecords((record) -> writeLabel(out, record));
+            });
         }
 
-        ByteString labels = ByteString.load("labels.txt.gz", progress);
-        ByteString[] lines = labels.split(NEW_LINE);
-        Arrays.sort(lines);
-        try (PrintStream out = new PrintStream(
-                new GZIPOutputStream(
-                        new FileOutputStream("labels2.txt.gz")))) {
-            for (ByteString line : lines) {
-                line.writeTo(out);
-                out.println();
-            }
+    }
+
+    private static void writeLabel(PrintStream out, DbpediaTuple record) {
+        if (!LABEL.equals(record.getPredicate())) {
+            return;
         }
+
+        ByteString resourceLang = record.getDbpediaResourceLang();
+        ByteString resource = record.getDbpediaResource();
+        if (resource == null || resourceLang == null) {
+            return;
+        }
+        resourceLang.writeTo(out);
+        out.print(' ');
+        resource.writeTo(out);
+        out.print(' ');
+        record.getObjectLang().writeTo(out);
+        out.print(' ');
+        record.getObject().writeTo(out);
+        out.println();
     }
 
 }

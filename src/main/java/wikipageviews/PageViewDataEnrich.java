@@ -6,6 +6,7 @@ import byte_lib.ByteStringInputStream;
 import byte_lib.Progress;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,9 +14,10 @@ import static byte_lib.ByteStreamMerger.seq;
 import static byte_lib.ByteString.NEW_LINE;
 import static byte_lib.ByteString.load;
 import static byte_lib.ByteStringInputStream.file;
+import static dbpedia.Compressed.snappyPrintStream;
 import static java.util.Comparator.comparing;
 
-public class LabelsMerger {
+public class PageViewDataEnrich {
     public static void main(String[] args) throws IOException {
         Progress progress = Progress.toConsole(System.out);
 
@@ -27,12 +29,13 @@ public class LabelsMerger {
         Arrays.sort(pageview);
 
         System.out.println("Merging");
-        try (ByteStringInputStream labels = file("labels2.txt.gz")) {
-            ByteStreamMerger.of(seq(pageview), labels::nextLine)
+        try (ByteStringInputStream depictions = file("depiction.txt.snappy");
+             PrintStream out = snappyPrintStream("", progress)) {
+            ByteStreamMerger.of(seq(pageview), depictions::nextLine)
                     .withRecordComparator(comparing(ByteString::firstTwoFields))
-                    .mergeTwo((pv, label) -> b.incrementAndGet());
+                    .mergeTwo((pv, depiction) -> b.incrementAndGet());
         }
 
-        System.out.println(b);
+        System.out.println(b + " " + pageview.length);
     }
 }

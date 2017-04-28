@@ -37,18 +37,18 @@ public class InterlinksExtractor {
             System.out.println("Writing interlinks.txt.gz");
 
             interlinks.forEach(dbpediaFile -> {
-                System.out.println("Reading " + dbpediaFile.file.getName());
-                dbpediaFile.readRecords(InterlinkRecordParser::parse, (record) -> {
-                    if (!filter.add(record.getLang(), record.getIntlTopic())) {
-                        return;
-                    }
-
-                    record.getLang().writeTo(out);
-                    out.print(":");
-                    record.getIntlTopic().writeTo(out);
-                    out.print(" ");
-                    record.getTopic().writeTo(out);
-                    out.println();
+                System.out.println("Reading " + dbpediaFile.getFile().getName());
+                dbpediaFile.readRecords((record) -> {
+//                    if (!filter.add(record.getLang(), record.getIntlTopic())) {
+//                        return;
+//                    }
+//
+//                    record.getLang().writeTo(out);
+//                    out.print(":");
+//                    record.getIntlTopic().writeTo(out);
+//                    out.print(" ");
+//                    record.getTopic().writeTo(out);
+//                    out.println();
                 });
             });
         }

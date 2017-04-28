@@ -1,15 +1,12 @@
 package byte_lib;
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
+import org.iq80.snappy.SnappyFramedInputStream;
 
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
-
-import static java.nio.ByteBuffer.allocate;
-import static java.nio.ByteBuffer.allocateDirect;
 
 public class ByteStringInputStream extends InputStream {
     private final InputStream in;
@@ -24,26 +21,14 @@ public class ByteStringInputStream extends InputStream {
         buf = new byte[1024*64];
     }
 
-    public int countBytes() throws IOException {
+    public long countBytes() throws IOException {
         long sz = 0;
         while (!eof) {
             readMore();
             sz += bufSz;
             bufSz = 0;
         }
-        return (int) sz;
-    }
-
-    public int countLines() {
-        try (ByteStringInputStream in = this) {
-            int cnt = 0;
-            while (in.nextLine() != null) {
-                cnt++;
-            }
-            return cnt;
-        } catch (IOException ex) {
-            throw new IOError(ex);
-        }
+        return sz;
     }
 
     public  ByteString readLine() throws IOException {
@@ -52,13 +37,13 @@ public class ByteStringInputStream extends InputStream {
             if (idx != -1) {
                 int oldPtr = ptr;
                 ptr = skipDoubleNewLine(buf, idx, bufSz) + 1;
-                return ByteString.wrap(buf, oldPtr, idx - oldPtr);
+                return ByteString.ba(buf, oldPtr, idx - oldPtr);
             }
 
             if (eof) {
                 done = true;
                 if (ptr < bufSz) {
-                    return ByteString.wrap(buf, ptr, bufSz - ptr);
+                    return ByteString.ba(buf, ptr, bufSz - ptr);
                 }
                 return null;
             }
@@ -149,14 +134,27 @@ public class ByteStringInputStream extends InputStream {
         }
     }
 
-    public ByteBuffer readAll(boolean direct, int sz, Progress progress) throws IOException {
-        progress = Progress.voided(progress);
 
-        ByteBuffer result = direct ? allocateDirect(sz) : allocate(sz);
+    public int countLines() {
+        try (ByteStringInputStream in = this) {
+            int cnt = 0;
+            while (in.nextLine() != null) {
+                cnt++;
+            }
+            return cnt;
+        } catch (IOException ex) {
+            throw new IOError(ex);
+        }
+    }
+
+    public ByteBuf readAll(long sz, Progress progress) throws IOException {
+        progress = Progress.voidIfNull(progress);
+
+        ByteBuf result = ByteBuf.allocate(sz);
+        progress.reset(sz);
         while (!eof) {
             readMore();
             result.put(buf, 0, bufSz);
-            sz += bufSz;
             bufSz = 0;
             progress.progress(bufSz);
         }
@@ -173,7 +171,9 @@ public class ByteStringInputStream extends InputStream {
         if (file.getName().endsWith(".gz")) {
             in = new GZIPInputStream(in);
         } else if (file.getName().endsWith(".bz2")) {
-            in = new BZip2CompressorInputStream(in);
+            in = new BZip2CompressorInputStream(in, true);
+        } else if (file.getName().endsWith(".snappy")) {
+            in = new SnappyFramedInputStream(in, true);
         }
         return new ByteStringInputStream(in);
     }
@@ -186,6 +186,8 @@ public class ByteStringInputStream extends InputStream {
     }
 
     public static ByteStringInputStream string(String str) {
-        return new ByteStringInputStream(new ByteArrayInputStream(str.getBytes()));
+        return new ByteStringInputStream(
+                new ByteArrayInputStream(
+                        str.getBytes()));
     }
 }

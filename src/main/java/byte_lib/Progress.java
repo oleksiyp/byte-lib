@@ -7,15 +7,15 @@ public interface Progress {
 
     void message(String message);
 
-    void reset(int total);
+    void reset(long total);
 
-    void progress(int delta);
+    void progress(long delta);
 
     static Progress toConsole(PrintStream out) {
         return new ConsoleProgress(out);
     }
 
-    static Progress voided(Progress progress) {
+    static Progress voidIfNull(Progress progress) {
         if (progress == null) {
             return VOID;
         }
@@ -23,11 +23,11 @@ public interface Progress {
     }
 
     class ConsoleProgress implements Progress {
-        private int total;
-        private int progressOut;
-        private int outN;
-        private int n;
-        private int progressDelta;
+        private long total;
+        private long progressOut;
+        private long outN;
+        private long n;
+        private long progressDelta;
         private PrintStream out;
 
         public ConsoleProgress(PrintStream out) {
@@ -41,7 +41,7 @@ public interface Progress {
         }
 
         @Override
-        public void reset(int total) {
+        public void reset(long total) {
             this.total = total;
             progressOut = total / progressDelta;
             outN = 0;
@@ -50,8 +50,8 @@ public interface Progress {
 
 
         @Override
-        public void progress(int delta) {
-            if (outN >= progressOut) {
+        public void progress(long delta) {
+            if (outN >= progressOut && total > 0) {
                 out.printf("%.2f%n", 100.0 * n / total);
                 outN = 0;
             }
@@ -68,12 +68,12 @@ public interface Progress {
         }
 
         @Override
-        public void reset(int total) {
+        public void reset(long total) {
 
         }
 
         @Override
-        public void progress(int delta) {
+        public void progress(long delta) {
 
         }
     }

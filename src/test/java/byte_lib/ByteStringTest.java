@@ -1,10 +1,12 @@
 package byte_lib;
 
-import byte_lib.ByteString;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static byte_lib.ByteString.bs;
@@ -41,7 +43,7 @@ public class ByteStringTest {
     public void wrap() throws Exception {
         byte []arr = new byte[] {'a','b','c','d','e'};
 
-        ByteString val = ByteString.wrap(arr, 0, 5);
+        ByteString val = ByteString.ba(arr, 0, 5);
 
         assertThat(val.length()).isEqualTo(5);
         assertThat(val.byteAt(0)).isEqualTo((byte) 'a');
@@ -65,7 +67,7 @@ public class ByteStringTest {
     public void length() throws Exception {
         byte []arr = new byte[] {'a','b','c','d','e'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.length())
                 .isEqualTo(3);
@@ -83,7 +85,7 @@ public class ByteStringTest {
     public void copyOf() throws Exception {
         byte []arr = new byte[] {'a','b','c','d','e'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         ByteString val2 = val.copyOf();
 
@@ -95,7 +97,7 @@ public class ByteStringTest {
     public void equals() throws Exception {
         byte []arr = new byte[] {'a','b','c','d','e'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val).isEqualTo(bs("bcd"));
     }
@@ -104,9 +106,9 @@ public class ByteStringTest {
     public void lastIndexOf() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
-        int idx = val.lastIndexOf((byte) 'c');
+        long idx = val.lastIndexOf((byte) 'c');
         assertThat(idx).isEqualTo(1);
     }
 
@@ -114,7 +116,7 @@ public class ByteStringTest {
     public void substring() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.substring(2)).isEqualTo(bs("d"));
     }
@@ -123,7 +125,7 @@ public class ByteStringTest {
     public void isEmpty() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.substring(3).isEmpty()).isEqualTo(true);
     }
@@ -132,7 +134,7 @@ public class ByteStringTest {
     public void trim() throws Exception {
         byte []arr = new byte[] {'a',' ','c',' ','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.trim()).isEqualTo(bs("c"));
     }
@@ -141,7 +143,7 @@ public class ByteStringTest {
     public void startsWith() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.startsWith(bs("cc"))).isEqualTo(true);
     }
@@ -150,7 +152,7 @@ public class ByteStringTest {
     public void endsWith() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.endsWith(bs("cd"))).isEqualTo(true);
     }
@@ -159,7 +161,7 @@ public class ByteStringTest {
     public void indexOf() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.indexOf((byte) 'd')).isEqualTo(2);
     }
@@ -168,7 +170,7 @@ public class ByteStringTest {
     public void indexOf1() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.indexOf(bs("cd"), 0)).isEqualTo(1);
     }
@@ -177,7 +179,7 @@ public class ByteStringTest {
     public void substring1() throws Exception {
         byte []arr = new byte[] {'a','c','c','d','c'};
 
-        ByteString val = ByteString.wrap(arr, 1, 3);
+        ByteString val = ByteString.ba(arr, 1, 3);
 
         assertThat(val.substring(1, 2)).isEqualTo(bs("c"));
     }
@@ -208,4 +210,12 @@ public class ByteStringTest {
         assertThat(bs("a").compareTo(bs("ab"))).isEqualTo(-1);
     }
 
+    @Test
+    public void load() throws Exception {
+        Path tempFile = Files.createTempFile("tmp", ".txt");
+        tempFile.toFile().deleteOnExit();
+        Files.write(tempFile, "abc\ndef\n".getBytes());
+        ByteString str = ByteString.load(tempFile.toFile().getAbsolutePath());
+        assertThat(str).isEqualTo(bs("abc\ndef\n"));
+    }
 }

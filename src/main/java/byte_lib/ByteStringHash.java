@@ -1,13 +1,15 @@
 package byte_lib;
 
 public interface ByteStringHash {
-    ByteStringHash n(int hashFunction);
-
-    long getHash(ByteString str, ByteString... other);
-
     static ByteStringHash simple() {
         return new SimpleByteStringHash();
     }
+
+    ByteStringHash n(int hashFunction);
+
+    long hashCode(ByteString str, ByteString... other);
+
+    long hashCode(ByteString str, long off, long len);
 
     class SimpleByteStringHash implements ByteStringHash {
         long multiplier = 31;
@@ -19,12 +21,22 @@ public interface ByteStringHash {
         }
 
         @Override
-        public long getHash(ByteString str, ByteString... other) {
+        public long hashCode(ByteString str, ByteString... other) {
             long hash = hashString(1L, str);
             for (ByteString s : other) {
                 hash = hashString(hash, s);
             }
             return hash;
+        }
+
+        @Override
+        public long hashCode(ByteString bs, long off, long len) {
+            long result = 1;
+            result = 31 * result + len;
+            for (int i = 0; i < len; i++) {
+                result = 31 * result + bs.byteAt(i + off);
+            }
+            return result;
         }
 
         private long hashString(long hash, ByteString s) {

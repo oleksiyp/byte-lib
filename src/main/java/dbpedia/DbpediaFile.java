@@ -7,8 +7,11 @@ import byte_lib.Progress;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static byte_lib.ByteString.bs;
 import static byte_lib.ByteStringInputStream.file;
@@ -21,6 +24,8 @@ public class DbpediaFile {
     private Progress progress = Progress.VOID;
 
     private int linesCount;
+    private int fileId;
+    private int filesCount;
 
     public DbpediaFile(File file) {
         this.file = file;
@@ -49,7 +54,8 @@ public class DbpediaFile {
         return s.trim().startsWith(COMMENT_START);
     }
 
-    public <T> void readRecords(Function<ByteString, T> parser, Consumer<T> recordConsumer) {
+    public void readRecords(Consumer<DbpediaTuple> recordConsumer) {
+        DbpediaTupleParser parser = new DbpediaTupleParser();
         if (getLinesCount() != 0) {
             progress.reset(getLinesCount());
         }
@@ -62,9 +68,13 @@ public class DbpediaFile {
                     return;
                 }
 
-                T record = parser.apply(line);
+                DbpediaTuple record = parser.parse(line);
 
                 if (record == null) {
+                    if (parser.getError() != null) {
+                        String error = parser.getError();
+                        progress.message(error);
+                    }
                     return;
                 }
 
@@ -85,9 +95,51 @@ public class DbpediaFile {
 
     public ByteString readAll() {
         try {
-            return ByteString.load(file, progress, true);
+            return ByteString.load(file, progress);
         } catch (IOException e) {
             throw new IOError(e);
         }
+    }
+
+    public File getFile() {
+        return file;
+    }
+
+    public void setFileId(int fileId) {
+        this.fileId = fileId;
+    }
+
+    public int getFileId() {
+        return fileId;
+    }
+
+    public static List<DbpediaFile> dirFiles(File dir, Progress progress) {
+        List<DbpediaFile> files = Stream.of(
+                Optional.ofNullable(dir.listFiles()).orElse(new File[0]))
+                .filter(File::isFile)
+                .map(DbpediaFile::new)
+                .peek((f) -> f.setProgress(Progress.voidIfNull(progress)))
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < files.size(); i++) {
+            files.get(i).setFileId(i);
+            files.get(i).setFilesCount(files.size());
+        }
+
+        return files;
+    }
+
+    public DbpediaFile reportNFile() {
+        progress.message("File " + (fileId + 1) + " of " + filesCount + ": " + file.getName());
+
+        return this;
+    }
+
+    public void setFilesCount(int filesCount) {
+        this.filesCount = filesCount;
+    }
+
+    public int getFilesCount() {
+        return filesCount;
     }
 }

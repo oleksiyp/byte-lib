@@ -25,7 +25,7 @@ class BloomByteStringFilter implements ByteStringFilter {
     public boolean contains(ByteString str, ByteString... other) {
         boolean ret = true;
         for (int i = 0; i < nHashes; i++) {
-            int hash = (int) (hasher.n(i).getHash(str, other) & mask);
+            int hash = (int) (hasher.n(i).hashCode(str, other) & mask);
             ret &= getBit(hash >> LONG_BITS_SIZE, hash & LONG_BITS_SIZE_MASK);
         }
         return ret;
@@ -35,7 +35,7 @@ class BloomByteStringFilter implements ByteStringFilter {
     public boolean add(ByteString str, ByteString... other) {
         boolean ret = true;
         for (int i = 0; i < nHashes; i++) {
-            int hash = (int) (hasher.n(i).getHash(str, other) & mask);
+            int hash = (int) (hasher.n(i).hashCode(str, other) & mask);
             ret &= setBit(hash >> LONG_BITS_SIZE, hash & LONG_BITS_SIZE_MASK);
         }
         return !ret;
