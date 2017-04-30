@@ -1,10 +1,6 @@
 package byte_lib;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
@@ -26,21 +22,12 @@ public class ByteStringMap<T> implements Map<ByteString, T> {
 
     private void allocateCapacity(int capacity) {
         capacity *= 4;
-        bits = nBits(capacity);
+        bits = Bytes.nBits(capacity);
         if (bits < 3) bits = 3;
         table = new HashEntry[1 << bits];
         bucketsFilled = 0;
         bucketsRemoved = 0;
         System.out.println("Rehash " + bucketsFilled + " " + table.length);
-    }
-
-    private int nBits(int capacity) {
-        int bits = 0;
-        while (capacity > 0) {
-            bits++;
-            capacity >>= 1;
-        }
-        return bits;
     }
 
     @Override

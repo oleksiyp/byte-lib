@@ -2,15 +2,17 @@ package byte_lib;
 
 import java.nio.ByteBuffer;
 
+import static byte_lib.Bytes.nBits;
+
 public class ByteStringBuilder {
-    ByteBuffer buf;
+    private ByteBuffer buf;
 
     public ByteStringBuilder() {
         buf = ByteBuffer.allocate(16);
     }
 
     public ByteStringBuilder(int len) {
-        buf = ByteBuffer.allocate(len);
+        buf = ByteBuffer.allocate(1 << nBits(len));
     }
 
     public ByteStringBuilder clear() {

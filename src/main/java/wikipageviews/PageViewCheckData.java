@@ -16,7 +16,6 @@ import static java.util.stream.IntStream.range;
 import static dbpedia.InterlinksLookup.INTERLINKS;
 
 public class PageViewCheckData {
-
     public static final ByteString COLON = bs(":");
 
     public static void main(String[] args) throws IOException {

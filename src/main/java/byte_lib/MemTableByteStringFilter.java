@@ -18,20 +18,11 @@ class MemTableByteStringFilter implements ByteStringFilter {
 
     private void allocateCapacity(int capacity) {
         capacity *= 2;
-        bits = nBits(capacity);
+        bits = Bytes.nBits(capacity);
         if (bits < 3) bits = 3;
         table = new long[1 << bits];
         bucketsFilled = 0;
         System.out.println("Rehash " + bucketsFilled + " " + table.length);
-    }
-
-    private int nBits(int capacity) {
-        int bits = 0;
-        while (capacity > 0) {
-            bits++;
-            capacity >>= 1;
-        }
-        return bits;
     }
 
     @Override

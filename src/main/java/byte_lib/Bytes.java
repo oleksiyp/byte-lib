@@ -2,7 +2,7 @@ package byte_lib;
 
 import static java.lang.String.format;
 
-public class Bytes {
+class Bytes {
     public static String sizeToString(long bytes) {
         if (bytes > 1024L * 1024 * 1024 * 1024) {
             return format("%.2fTb", bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0));
@@ -17,4 +17,12 @@ public class Bytes {
         }
     }
 
+    public static int nBits(int capacity) {
+        int bits = 0;
+        while (capacity > 0) {
+            bits++;
+            capacity >>= 1;
+        }
+        return bits;
+    }
 }
