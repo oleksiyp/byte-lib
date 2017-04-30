@@ -140,7 +140,7 @@ public class LongTimSort {
      * @param workLen usable size of work array
      * @since 1.8
      */
-    public static  void sort(long[] a, int lo, int hi, LongComparator c,
+    private static  void sort(long[] a, int lo, int hi, LongComparator c,
                              long[] work, int workBase, int workLen) {
         assert c != null && a != null && lo >= 0 && lo <= hi && hi <= a.length;
 
@@ -338,6 +338,10 @@ public class LongTimSort {
             n >>= 1;
         }
         return n + r;
+    }
+
+    public static void sort(long[] items, LongComparator cmp) {
+        sort(items, 0, items.length, cmp, null, 0, 0);
     }
 
     /**

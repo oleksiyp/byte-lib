@@ -1,20 +1,18 @@
 package dbpedia;
 
+import byte_lib.ByteFiles;
 import byte_lib.ByteString;
-import byte_lib.ByteStringInputStream;
 import byte_lib.Progress;
 
 import java.io.File;
-import java.io.IOError;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static byte_lib.ByteString.NEW_LINE;
 import static byte_lib.ByteString.bs;
-import static byte_lib.ByteStringInputStream.file;
 
 public class DbpediaFile {
     public static final ByteString COMMENT_START = bs("#");
@@ -26,13 +24,15 @@ public class DbpediaFile {
     private int linesCount;
     private int fileId;
     private int filesCount;
+    private ByteString content;
 
     public DbpediaFile(File file) {
         this.file = file;
     }
 
-    public void setProgress(Progress progress) {
+    public DbpediaFile setProgress(Progress progress) {
         this.progress = progress;
+        return this;
     }
 
     public Progress getProgress() {
@@ -40,13 +40,10 @@ public class DbpediaFile {
     }
 
     public DbpediaFile countLines() {
-        try {
-            progress.message("Counting records in '" + file.getName() + "'");
-            setLinesCount(file(file).countLines());
-            progress.message(getLinesCount() + " records in '" + file.getName() + "'");
-        } catch (IOException ex) {
-            throw new IOError(ex);
-        }
+        ByteString allFile = readAll();
+        progress.message("Counting records in '" + file.getName() + "'");
+        setLinesCount(allFile.howMuch(NEW_LINE));
+        progress.message(getLinesCount() + " records in '" + file.getName() + "'");
         return this;
     }
 
@@ -59,30 +56,27 @@ public class DbpediaFile {
         if (getLinesCount() != 0) {
             progress.reset(getLinesCount());
         }
-        try (ByteStringInputStream in = file(file)) {
-            in.readLines((line) -> {
-                if (getLinesCount() != 0) {
-                    progress.progress(1);
-                }
-                if (isCommentLine(line)) {
-                    return;
-                }
 
-                DbpediaTuple record = parser.parse(line);
+        readAll().iterate(NEW_LINE, line  -> {
+            if (getLinesCount() != 0) {
+                progress.progress(1);
+            }
+            if (isCommentLine(line)) {
+                return;
+            }
 
-                if (record == null) {
-                    if (parser.getError() != null) {
-                        String error = parser.getError();
-                        progress.message(error);
-                    }
-                    return;
+            DbpediaTuple record = parser.parse(line);
+
+            if (record == null) {
+                if (parser.getError() != null) {
+                    String error = parser.getError();
+                    progress.message(error);
                 }
+                return;
+            }
 
-                recordConsumer.accept(record);
-            });
-        } catch (IOException ex) {
-            throw new IOError(ex);
-        }
+            recordConsumer.accept(record);
+        });
     }
 
     public int getLinesCount() {
@@ -94,11 +88,10 @@ public class DbpediaFile {
     }
 
     public ByteString readAll() {
-        try {
-            return ByteString.load(file, progress);
-        } catch (IOException e) {
-            throw new IOError(e);
+        if (content != null) {
+            return content;
         }
+        return content = ByteFiles.readAll(file, progress);
     }
 
     public File getFile() {
@@ -111,6 +104,15 @@ public class DbpediaFile {
 
     public int getFileId() {
         return fileId;
+    }
+
+
+    public void setFilesCount(int filesCount) {
+        this.filesCount = filesCount;
+    }
+
+    public int getFilesCount() {
+        return filesCount;
     }
 
     public static List<DbpediaFile> dirFiles(File dir, Progress progress) {
@@ -131,15 +133,25 @@ public class DbpediaFile {
 
     public DbpediaFile reportNFile() {
         progress.message("File " + (fileId + 1) + " of " + filesCount + ": " + file.getName());
-
         return this;
     }
 
-    public void setFilesCount(int filesCount) {
-        this.filesCount = filesCount;
-    }
-
-    public int getFilesCount() {
-        return filesCount;
+    public DbpediaFile recodeSnappy() {
+        String name = file.getName();
+        int idx = name.lastIndexOf('.');
+        if (idx != -1) {
+            name = name.substring(0, idx);
+        }
+        name += ".snappy";
+        File snappyFile = new File(file.getParent(), name);
+        if (!snappyFile.isFile()) {
+            progress.message("Recoding file to snappy");
+            if (content == null) {
+                content = readAll();
+            }
+            ByteFiles.writeAll(snappyFile, content, progress);
+        }
+        file = snappyFile;
+        return this;
     }
 }

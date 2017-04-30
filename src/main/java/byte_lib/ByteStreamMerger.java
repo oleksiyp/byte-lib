@@ -117,6 +117,20 @@ public class ByteStreamMerger {
         };
     }
 
+    public static Supplier<ByteString> seqIdx(ByteString string, long[] idxs) {
+        return new Supplier<ByteString>() {
+            int i = 0;
+
+            @Override
+            public ByteString get() {
+                return i < idxs.length ?
+                        string.substringIdx(idxs[i++]) :
+                        null;
+            }
+        };
+    }
+
+
     public interface ByteStringTriConsumer {
         void accept(ByteString a, ByteString b, ByteString c);
     }

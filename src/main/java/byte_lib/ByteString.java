@@ -1,14 +1,13 @@
 package byte_lib;
 
-import java.io.*;
+import java.io.IOError;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import static byte_lib.ByteStringInputStream.file;
-import static java.lang.String.format;
 
 public class ByteString implements Comparable<ByteString> {
     public static final ByteString EMPTY = new ByteString(ByteBuf.allocate(0));
@@ -119,9 +118,13 @@ public class ByteString implements Comparable<ByteString> {
         return new String(buf, 0, buf.length);
     }
 
-    public void writeTo(PrintStream out) {
-        for (long i = 0; i < length(); i++) {
-            out.write(byteAt(i));
+    public void writeTo(OutputStream out) {
+        try {
+            for (long i = 0; i < length(); i++) {
+                    out.write((int) byteAt(i));
+            }
+        } catch (IOException e) {
+            throw new IOError(e);
         }
     }
 
@@ -189,17 +192,17 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public long indexOf(byte ch) {
-        return indexOf(ch, 0);
+        return indexOf(ch, 0, length());
     }
 
-    public long indexOf(ByteString str, long off) {
+    public long indexOf(ByteString str, long start, long end) {
         if (str.length() == 1) {
-            return indexOf(str.byteAt(0), off);
+            return indexOf(str.byteAt(0), start, end);
         }
 
         long strLen = str.length();
-        long wholeLen = length() - strLen;
-        for (long i = off; i <= wholeLen; i++) {
+        long wholeLen = end - strLen;
+        for (long i = start; i <= wholeLen; i++) {
             boolean found = true;
             for (long j = 0; j < strLen; j++) {
                 if (byteAt(i + j) != str.byteAt(j)) {
@@ -214,14 +217,17 @@ public class ByteString implements Comparable<ByteString> {
         return -1;
     }
 
-    public long indexOf(byte ch, long off) {
-        long wholeLen = length();
-        for (long i = off; i < wholeLen; i++) {
+    public long indexOf(byte ch, long start, long end) {
+        for (long i = start; i < end; i++) {
             if (byteAt(i) == ch) {
                 return i;
             }
         }
         return -1;
+    }
+
+    public boolean contains(ByteString key) {
+        return indexOf(key, 0, length()) != -1;
     }
 
     public ByteString substring(int start) {
@@ -250,25 +256,6 @@ public class ByteString implements Comparable<ByteString> {
         return arr;
     }
 
-    public static long idxStart(long encoded) {
-        return encoded >> 24;
-    }
-
-    public static long idxEnd(long encoded) {
-        long start = encoded >> 24;
-        long len = encoded & ((1 << 24) - 1);
-        return start + len;
-    }
-
-    public static long idxLen(long encoded) {
-        return encoded & ((1 << 24) - 1);
-    }
-
-    public static long encodeIdx(long start, long end) {
-        long len = end - start;
-        return (start << 24) | (len & ((1 << 24) - 1));
-    }
-
     public void iterate(ByteString str, Consumer<ByteString> it) {
         iterateIdx(str, (start, end) -> {
             it.accept(substring(start, end));
@@ -277,40 +264,44 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public void iterateIdx(ByteString separator, SubstringIterator it) {
+        iterateIdx(separator, 0, length(), it);
+    }
+
+    public void iterateIdx(ByteString separator, long start, long end, SubstringIterator it) {
         if (separator.length() == 1) {
             byte sep = separator.byteAt(0);
-            iterateIdx(sep, it);
+            iterateIdx(sep, start, end, it);
             return;
         }
-        long start = 0;
-        while (start < length()) {
-            long idx = indexOf(separator, start);
+        long s = start;
+        while (s < end) {
+            long idx = indexOf(separator, s, end);
 
             if (idx == -1) {
-                if (start < length()) {
-                    it.substring(start, length());
+                if (s < end) {
+                    it.substring(s, end);
                 }
                 break;
             }
-            if (start < idx && !it.substring(start, idx)) {
+            if (s < idx && !it.substring(s, idx)) {
                 return;
             }
-            start = idx + separator.length();
+            s = idx + separator.length();
         }
     }
 
-    private void iterateIdx(byte sep, SubstringIterator it) {
-        long start = 0;
-        for (long i = 0; i < length(); i++) {
+    private void iterateIdx(byte sep, long start, long end, SubstringIterator it) {
+        long s = start;
+        for (long i = start; i < end; i++) {
             if (byteAt(i) == sep) {
-                if (start < i && !it.substring(start, i)) {
+                if (s < i && !it.substring(s, i)) {
                     return;
                 }
-                start = i + 1;
+                s = i + 1;
             }
         }
-        if (start < length()) {
-            it.substring(start, length());
+        if (s < end) {
+            it.substring(s, end);
         }
     }
 
@@ -352,6 +343,10 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public long toLong() {
+        return toLong(10);
+    }
+
+    private long toLong(int degree) {
         long r = 0;
         int ptr = 0;
 
@@ -361,44 +356,114 @@ public class ByteString implements Comparable<ByteString> {
             ptr++;
         }
 
-        while (ptr < length() && '0' <= byteAt(ptr) && byteAt(ptr) <= '9') {
-            r *= 10;
-            r += byteAt(ptr) - '0';
+        while (ptr < length()) {
+            int d = digitByte(byteAt(ptr), degree);
+            if (d == -1) {
+                break;
+            }
+            r *= degree;
+            r += d;
             ptr++;
         }
         return r * sign;
     }
 
+    private int digitByte(byte b, int degree) {
+        if (degree <= 10) {
+            if ('0' <= b && b <= '0' + degree - 1) {
+                return b - '0';
+            }
+        } else {
+            if ('0' <= b && b <= '9') {
+                return b - '0';
+            }
+            int off = degree - 11;
+            if ('a' <= b && b <= 'a' + off) {
+                return b - 'a' + 10;
+            } else if ('A' <= b && b <= 'A' + off) {
+                return b - 'A' + 10;
+            }
+        }
+        return -1;
+    }
+
+
     public int toInt() {
         return (int) toLong();
     }
 
-    public ByteString fields(ByteString separator, int start, int end) {
-        if (start > end) throw new IllegalArgumentException("start");
+    public int toInt(int degree) {
+        return (int) toLong(degree);
+    }
+
+
+    public ByteString fields(ByteString separator, int fieldStart, int fieldEnd) {
         long []r = new long[] { 0,  0, length() };
-        iterateIdx(separator, (s, e) -> {
-            if (r[0] == start) r[1] = s;
-            if (r[0] == end) r[2] = e;
-            r[0]++;
-            return true;
-        });
+        fields0(separator, 0, length(), fieldStart, fieldEnd, r);
         return substring(r[1], r[2]);
     }
 
-    public ByteString fields(int start, int end) {
-        return fields(SEPARATOR, start, end);
+
+    public long fieldsIdx(ByteString separator,
+                          long start,
+                          long end,
+                          int fieldStart,
+                          int fieldEnd) {
+        long []r = new long[] { 0,  0, end };
+        if (fieldStart > fieldEnd) throw new IllegalArgumentException("fieldStart");
+        iterateIdx(separator, start, end, (s, e) -> {
+            if (r[0] == fieldStart) r[1] = s;
+            if (r[0] == fieldEnd) r[2] = e;
+            r[0]++;
+
+             return r[0] <= fieldStart ||
+                     (r[0] <= fieldEnd &&
+                             fieldEnd != Integer.MAX_VALUE);
+        });
+        return encodeIdx(r[1], r[2]);
     }
 
-    public ByteString field(ByteString separator, int i) {
-        return fields(separator, i, i);
+
+    private void fields0(ByteString separator,
+                         long start,
+                         long end,
+                         int fieldStart,
+                         int fieldEnd,
+                         long[] r) {
+        if (fieldStart > fieldEnd) throw new IllegalArgumentException("fieldStart");
+        iterateIdx(separator, start, end, (s, e) -> {
+            if (r[0] == fieldStart) r[1] = s;
+            if (r[0] == fieldEnd) r[2] = e;
+            r[0]++;
+
+            return r[0] <= fieldStart ||
+                    (r[0] <= fieldEnd &&
+                            fieldEnd != Integer.MAX_VALUE);
+        });
     }
 
-    public ByteString field(int i) {
-        return fields(SEPARATOR, i, i);
+    public ByteString fields(int fieldStart, int fieldEnd) {
+        return fields(SEPARATOR, fieldStart, fieldEnd);
+    }
+
+    public ByteString field(ByteString separator, int nField) {
+        return fields(separator, nField, nField);
+    }
+
+    public ByteString field(int nField) {
+        return fields(SEPARATOR, nField, nField);
     }
 
     public ByteString firstField() {
-        return fields(0, 0);
+        return field(0);
+    }
+
+    public ByteString secondField() {
+        return field(1);
+    }
+
+    public ByteString thirdField() {
+        return field(2);
     }
 
     public ByteString firstTwoFields() {
@@ -409,33 +474,6 @@ public class ByteString implements Comparable<ByteString> {
         return fields(0, 2);
     }
 
-    public static ByteString load(String path) throws IOException {
-        return load(new File(path), null);
-    }
-
-    public static ByteString load(String path, Progress progress) throws IOException {
-        return load(new File(path), progress);
-    }
-
-    public static ByteString load(File file, Progress progress) throws IOException {
-        String name = file.getName();
-        progress = Progress.voidIfNull(progress);
-
-        progress.message(format("Counting size of '%s'", name));
-        long nBytes;
-        try (ByteStringInputStream in = file(file)) {
-            nBytes = in.countBytes();
-        }
-
-        progress.message(format("Allocating %s for '%s'", Bytes.sizeToString(nBytes), name));
-        try (ByteStringInputStream in = file(file)){
-            ByteBuf buf = in.readAll(nBytes, progress);
-            return ByteString.bb(buf);
-        } finally {
-            progress.message(format("Done reading '%s'!", name));
-        }
-    }
-
     public int howMuch(ByteString str) {
         int []n = new int[1];
         iterateIdx(str, (s, e) -> {
@@ -443,6 +481,23 @@ public class ByteString implements Comparable<ByteString> {
             return true;
         });
         return n[0];
+    }
+
+    public static long idxStart(long encoded) {
+        return encoded >> 24;
+    }
+
+    public static long idxLen(long encoded) {
+        return encoded & ((1 << 24) - 1);
+    }
+
+    public static long idxEnd(long encoded) {
+        return idxStart(encoded) + idxLen(encoded);
+    }
+
+    public static long encodeIdx(long start, long end) {
+        long len = end - start;
+        return (start << 24) | (len & ((1 << 24) - 1));
     }
 
     public int compareByIdx(long idx1, long idx2) {
@@ -475,11 +530,38 @@ public class ByteString implements Comparable<ByteString> {
         return 0;
     }
 
-    public void writeToByIdx(long idx, PrintStream out) {
+    public void writeToByIdx(long idx, OutputStream out) {
         long start = idxStart(idx);
         long len = idxLen(idx);
-        for (long i = 0; i < len; i++) {
-            out.write(byteAt(i + start));
+        try {
+            for (long i = 0; i < len; i++) {
+                out.write((int) byteAt(start + i));
+            }
+        } catch (IOException e) {
+            throw new IOError(e);
         }
+    }
+
+    public ByteString substringIdx(long idx) {
+        long start = idxStart(idx);
+        long len = idxLen(idx);
+        return substring(start, start + len);
+    }
+
+    public ByteString replace(byte from, byte to) {
+        ByteBuf buf = ByteBuf.wrap(ByteBuffer.allocate((int) length()));
+        long pos = buffer.position();
+        long end = buffer.limit();
+        buf.put(buffer);
+
+        for (long i = 0; i < end - pos; i++) {
+            if (buf.get(i) == from) {
+                buf.put(i, to);
+            }
+        }
+
+        buffer.position(pos).limit(end);
+        buf.position(0).limit(end - pos);
+        return new ByteString(buf);
     }
 }

@@ -9,6 +9,10 @@ public class ByteStringBuilder {
         buf = ByteBuffer.allocate(16);
     }
 
+    public ByteStringBuilder(int len) {
+        buf = ByteBuffer.allocate(len);
+    }
+
     public ByteStringBuilder clear() {
         buf.position(0).limit(buf.capacity());
         return this;
@@ -22,11 +26,16 @@ public class ByteStringBuilder {
 
     public ByteStringBuilder append(ByteString str) {
         for (int i = 0; i < str.length(); i++) {
-            if (buf.position() == buf.limit()) {
-                extendTwice();
-            }
-            buf.put(str.byteAt(i));
+            append(str.byteAt(i));
         }
+        return this;
+    }
+
+    public ByteStringBuilder append(byte b) {
+        if (buf.position() == buf.limit()) {
+            extendTwice();
+        }
+        buf.put(b);
         return this;
     }
 

@@ -1,22 +1,18 @@
 package wikipageviews;
 
+import byte_lib.ByteString;
+
 import static byte_lib.ByteString.bs;
 
 public class MainPageRate {
-    public static final byte_lib.ByteString MAIN_PAGE_CONCEPT = bs("Main_Page");
+    public static final ByteString MAIN_PAGE_CONCEPT = bs("Main_Page");
 
     double nViews = 0;
     int n = 0;
 
-    public boolean add(PageViewRecord record) {
-        if (!MAIN_PAGE_CONCEPT.equals(record.getConcept())) {
-            return false;
-        }
-
-        nViews += record.getViews();
+    public void add(int val) {
+        nViews += val;
         n++;
-
-        return true;
     }
 
     public boolean isCalculated() {
@@ -26,4 +22,5 @@ public class MainPageRate {
     public double get() {
         return nViews / n;
     }
+
 }

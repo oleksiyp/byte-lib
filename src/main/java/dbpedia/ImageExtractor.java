@@ -1,5 +1,6 @@
 package dbpedia;
 
+import byte_lib.ByteFiles;
 import byte_lib.ByteString;
 import byte_lib.Progress;
 
@@ -23,8 +24,8 @@ public class ImageExtractor {
 
         List<DbpediaFile> files = DbpediaFile.dirFiles(IN_DIR, progress);
 
-        try (PrintStream thumbnail = Compressed.snappyPrintStream(OUT_THUMBNAIL, progress);
-             PrintStream depiction = Compressed.snappyPrintStream(OUT_DEPICTION, progress)) {
+        try (PrintStream thumbnail = ByteFiles.printStream(OUT_THUMBNAIL, progress);
+             PrintStream depiction = ByteFiles.printStream(OUT_DEPICTION, progress)) {
 
             files.forEach(file ->
                     file.reportNFile()
@@ -43,8 +44,8 @@ public class ImageExtractor {
     }
 
     private static void writeImageUrl(PrintStream out, DbpediaTuple record) {
-        ByteString resourceLang = record.getDbpediaResourceLang();
-        ByteString resource = record.getDbpediaResource();
+        ByteString resourceLang = record.getDbpediaSubjectLang();
+        ByteString resource = record.getDbpediaSubject();
         if (resource == null || resourceLang == null) {
             return;
         }

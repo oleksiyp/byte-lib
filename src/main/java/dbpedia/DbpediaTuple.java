@@ -1,6 +1,7 @@
 package dbpedia;
 
 import byte_lib.ByteString;
+import byte_lib.ByteStringBuilder;
 
 import static byte_lib.ByteString.bs;
 
@@ -16,8 +17,11 @@ public class DbpediaTuple {
     private final ByteString object;
     private final ByteString objectLang;
 
-    private ByteString dbpediaResource;
-    private ByteString dbpediaResourceLang;
+    private ByteString dbpediaSubject;
+    private ByteString dbpediaSubjectLang;
+    private ByteString dbpediaObjectLang;
+    private ByteString dbpediaObject;
+    private ByteString objectUnquoted;
 
     public DbpediaTuple(ByteString subject,
                         ByteString predicate,
@@ -46,6 +50,32 @@ public class DbpediaTuple {
     }
 
     public ByteString getObject() {
+        if (objectUnquoted == null) {
+            objectUnquoted = buildUnquotedObject();
+        }
+
+        return objectUnquoted;
+    }
+
+    private ByteString buildUnquotedObject() {
+        long len = object.length();
+        ByteStringBuilder builder = new ByteStringBuilder((int) len + 5);
+        for (int i = 0; i < len; i++) {
+            byte b = object.byteAt(i);
+            if (b == '\\' && i + 1 < len && object.byteAt(i + 1) == '\"') {
+                builder.append((byte) '\"');
+                i++;
+            } else if (b == '\\' && i + 1 < len && object.byteAt(i + 1) == '\\') {
+                builder.append((byte) '\\');
+                i++;
+            } else {
+                builder.append(b);
+            }
+        }
+        return builder.build();
+    }
+
+    public ByteString getObjectWithQuotes() {
         return object;
     }
 
@@ -53,38 +83,69 @@ public class DbpediaTuple {
         return objectLang;
     }
 
-    public ByteString getDbpediaResource() {
-        if (dbpediaResource == null) {
-            lazyParseDbepdiaResource();
+    public ByteString getDbpediaSubject() {
+        if (dbpediaSubject == null) {
+            lazyLoadDbpediaSubject();
         }
-        return dbpediaResource;
+        return dbpediaSubject;
     }
 
-    public ByteString getDbpediaResourceLang() {
-        if (dbpediaResourceLang == null) {
-            lazyParseDbepdiaResource();
+
+    public ByteString getDbpediaSubjectLang() {
+        if (dbpediaSubjectLang == null) {
+            lazyLoadDbpediaSubject();
         }
-        return dbpediaResourceLang;
+        return dbpediaSubjectLang;
     }
 
-    private void lazyParseDbepdiaResource() {
-        if (subject.startsWith(DBPEDIA_RESOURCE_PREFIX)) {
-            dbpediaResource = subject.cut(DBPEDIA_RESOURCE_PREFIX, ByteString.EMPTY);
-            dbpediaResourceLang = EN;
-            return;
+    public ByteString getDbpediaObjectLang() {
+        if (dbpediaObjectLang == null) {
+            lazyLoadDbpediaObject();
+        }
+        return dbpediaObjectLang;
+    }
+
+    public ByteString getDbpediaObject() {
+        if (dbpediaObject == null) {
+            lazyLoadDbpediaObject();
+        }
+        return dbpediaObject;
+    }
+
+    private void lazyLoadDbpediaSubject() {
+        ByteString[] arr = lazyParseDbepdiaResource(subject);
+        if (arr != null) {
+            dbpediaSubjectLang = arr[0];
+            dbpediaSubject = arr[1];
+        }
+    }
+
+    private void lazyLoadDbpediaObject() {
+        ByteString[] arr = lazyParseDbepdiaResource(object);
+        if (arr != null) {
+            dbpediaObjectLang = arr[0];
+            dbpediaObject = arr[1];
+        }
+    }
+
+    private ByteString[] lazyParseDbepdiaResource(ByteString uri) {
+        if (uri.startsWith(DBPEDIA_RESOURCE_PREFIX)) {
+            return new ByteString[] {
+                    EN,
+                    uri.cut(DBPEDIA_RESOURCE_PREFIX, ByteString.EMPTY)
+            };
         }
 
-        ByteString resource = subject.cut(HTTP_PREFIX, ByteString.EMPTY);
+        ByteString resource = uri.cut(HTTP_PREFIX, ByteString.EMPTY);
         if (resource == null) {
-            return;
+            return null;
         }
 
         ByteString[] subjArr = resource.split(DBPEDIA_RESOURCE_SUFFIX);
         if (subjArr.length < 2) {
-            return;
+            return null;
         }
 
-        dbpediaResourceLang = subjArr[0];
-        dbpediaResource = subjArr[1];
+        return subjArr;
     }
 }

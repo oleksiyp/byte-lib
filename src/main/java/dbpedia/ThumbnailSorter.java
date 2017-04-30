@@ -1,7 +1,6 @@
 package dbpedia;
 
 import byte_lib.Progress;
-import byte_lib.sort.FileSorter;
 
 import java.io.IOException;
 

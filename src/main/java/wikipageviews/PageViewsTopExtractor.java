@@ -1,6 +1,9 @@
 package wikipageviews;
 
-import byte_lib.*;
+import byte_lib.ByteFiles;
+import byte_lib.ByteString;
+import byte_lib.ByteStringInputStream;
+import byte_lib.Progress;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -8,9 +11,8 @@ import java.io.PrintStream;
 import java.util.PriorityQueue;
 import java.util.zip.GZIPInputStream;
 
+import static byte_lib.ByteFiles.printStream;
 import static byte_lib.ByteString.bs;
-import static byte_lib.ByteStringInputStream.file;
-import static dbpedia.Compressed.snappyPrintStream;
 import static java.util.Comparator.comparingInt;
 
 public class PageViewsTopExtractor {
@@ -25,7 +27,7 @@ public class PageViewsTopExtractor {
         int k = 10000;
         Progress progress = Progress.toConsole(System.out);
 
-        ByteString pageviews = ByteString.load("pageviews-20170418-120000.gz", progress);
+        ByteString pageviews = ByteFiles.readAll("pageviews-20170418-120000.gz", progress);
 
         MainPageRate mainPageRate = new MainPageRate();
 
@@ -37,7 +39,7 @@ public class PageViewsTopExtractor {
             }
         });
 
-        try (PrintStream out = snappyPrintStream("result.txt.snappy", progress)) {
+        try (PrintStream out = printStream("result.txt.snappy", progress)) {
             while (!topK.isEmpty()) {
                 PageViewRecord record = topK.remove();
                 out.printf("%s %s %s %d %.2f%n",

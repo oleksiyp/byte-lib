@@ -1,5 +1,6 @@
 package wikipageviews;
 
+import byte_lib.ByteFiles;
 import byte_lib.ByteString;
 
 import java.io.IOException;
@@ -15,10 +16,10 @@ public class DownloadViaDownloadMaster {
     public static void main(String[] args) throws IOException {
         try (PrintStream out = new PrintStream("dm.txt")) {
             DownloadViaDownloadMaster.out = out;
-            ByteString.load("pagviews-2016.txt")
+            ByteFiles.readAll("pagviews-2016.txt")
                     .iterate(ByteString.bs("\n"),
                             DownloadViaDownloadMaster::downloadLink);
-            ByteString.load("pagviews-2017.txt")
+            ByteFiles.readAll("pagviews-2017.txt")
                     .iterate(ByteString.bs("\n"),
                             DownloadViaDownloadMaster::downloadLink);
         }

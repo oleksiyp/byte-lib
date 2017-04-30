@@ -5,14 +5,14 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static byte_lib.ByteStringInputStream.string;
+import static byte_lib.ByteFiles.inputStreamFromString;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ByteStreamMergerTest {
     @Test
     public void testMissingRecord() throws Exception {
-        ByteStringInputStream in1 = string("aaa 3\nabc 5\ndef 1\nghi 2\n");
-        ByteStringInputStream in2 = string("abc 6\nghi 5\n");
+        ByteStringInputStream in1 = inputStreamFromString("aaa 3\nabc 5\ndef 1\nghi 2\n");
+        ByteStringInputStream in2 = inputStreamFromString("abc 6\nghi 5\n");
 
         List<Integer> result = new ArrayList<>();
         new ByteStreamMerger(in1::nextLine, in2::nextLine)
@@ -23,8 +23,8 @@ public class ByteStreamMergerTest {
 
     @Test
     public void testAllRecords() throws Exception {
-        ByteStringInputStream in1 = string("abc 5\ndef 1\nghi 2\n");
-        ByteStringInputStream in2 = string("abc 6\ndef 3\nghi 5\n");
+        ByteStringInputStream in1 = inputStreamFromString("abc 5\ndef 1\nghi 2\n");
+        ByteStringInputStream in2 = inputStreamFromString("abc 6\ndef 3\nghi 5\n");
 
         List<Integer> result = new ArrayList<>();
         new ByteStreamMerger(in1::nextLine, in2::nextLine)

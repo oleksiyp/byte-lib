@@ -1,12 +1,10 @@
 package byte_lib;
 
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import org.iq80.snappy.SnappyFramedInputStream;
-
-import java.io.*;
+import java.io.IOError;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.function.Consumer;
-import java.util.zip.GZIPInputStream;
 
 public class ByteStringInputStream extends InputStream {
     private final InputStream in;
@@ -18,7 +16,7 @@ public class ByteStringInputStream extends InputStream {
 
     public ByteStringInputStream(InputStream in) {
         this.in = in;
-        buf = new byte[1024*64];
+        buf = new byte[1024*512];
     }
 
     public long countBytes() throws IOException {
@@ -162,22 +160,6 @@ public class ByteStringInputStream extends InputStream {
         return result;
     }
 
-    public static ByteStringInputStream file(String path) throws IOException {
-        return file(new File(path));
-    }
-
-    public static ByteStringInputStream file(File file) throws IOException {
-        InputStream in = new FileInputStream(file);
-        if (file.getName().endsWith(".gz")) {
-            in = new GZIPInputStream(in);
-        } else if (file.getName().endsWith(".bz2")) {
-            in = new BZip2CompressorInputStream(in, true);
-        } else if (file.getName().endsWith(".snappy")) {
-            in = new SnappyFramedInputStream(in, true);
-        }
-        return new ByteStringInputStream(in);
-    }
-
     public void readLines(Consumer<ByteString> lines) {
         ByteString line;
         while ((line = nextLine()) != null) {
@@ -185,9 +167,4 @@ public class ByteStringInputStream extends InputStream {
         }
     }
 
-    public static ByteStringInputStream string(String str) {
-        return new ByteStringInputStream(
-                new ByteArrayInputStream(
-                        str.getBytes()));
-    }
 }

@@ -1,6 +1,10 @@
 package byte_lib;
 
-public class OneChunkByteStringMap {
+import static byte_lib.ByteString.encodeIdx;
+import static byte_lib.ByteString.idxLen;
+import static byte_lib.ByteString.idxStart;
+
+public class IdxByteStringMap {
     private final ByteStringHash hasher;
 
     private long []table;
@@ -9,22 +13,27 @@ public class OneChunkByteStringMap {
 
     private final ByteString chunk;
     private final ByteString itemSeparator;
-    private final ByteString keyValueSeparator;
 
-    public OneChunkByteStringMap(ByteString chunk,
-                                 ByteString itemSeparator,
-                                 ByteString keyValueSeparator) {
+    private final IdxMapper keyMapper;
+    private final IdxMapper valueMapper;
+
+    public IdxByteStringMap(ByteString chunk,
+                            ByteString itemSeparator,
+                            IdxMapper keyMapper,
+                            IdxMapper valueMapper) {
 
         this.chunk = chunk;
         this.itemSeparator = itemSeparator;
-        this.keyValueSeparator = keyValueSeparator;
+        this.keyMapper = keyMapper;
+        this.valueMapper = valueMapper;
 
         int records = chunk.howMuch(itemSeparator);
 
         allocateCapacity(records);
 
-        indexChunk();
         hasher = ByteStringHash.simple();
+
+        indexChunk();
     }
 
     private void indexChunk() {
@@ -61,51 +70,54 @@ public class OneChunkByteStringMap {
                 return null;
             }
             if (isChunkKey(entry - 1, keyStr)) {
-                return value(entry - 1, keyLen);
+                return value(entry - 1);
             }
         }
         return null;
     }
 
     private boolean put0(long start, long end) {
-        long keyLen = keyLen(start);
-        long hash = hasher.hashCode(chunk, start, keyLen);
+        long keyIdx = keyMapper.map(chunk, start, end);
+        long keyStart = idxStart(keyIdx);
+        long keyLen = idxLen(keyIdx);
+        long hash = hasher.hashCode(chunk, keyStart, keyLen);
         for (int n = 0; n < table.length; n++) {
             int item = openAddressItem(hash, n);
 
             long entry = table[item];
 
             if (entry == 0) {
-                table[item] = start + 1;
+                table[item] = encodeIdx(start, end) + 1;
                 bucketsFilled++;
                 return true;
             }
 
-            if (isChunkKey(entry - 1, chunk, start, keyLen)) {
-                table[item] = start + 1;
+            if (isChunkKey(entry - 1, chunk, keyStart, keyLen)) {
+                table[item] = encodeIdx(start, end) + 1;
                 return true;
             }
         }
         return true;
     }
 
-    private boolean isChunkKey(long key1, ByteString key2) {
-        return isChunkKey(key1, key2, 0, key2.length());
+    private boolean isChunkKey(long entryIdx, ByteString key2) {
+        return isChunkKey(entryIdx, key2, 0, key2.length());
     }
 
-    private boolean isChunkKey(long key1, ByteString key2, long start, long keyLen) {
-        if (chunk.length() - key1 < keyLen + keyValueSeparator.length()) {
+    private boolean isChunkKey(long entryIdx, ByteString key2, long key2Start, long key2Len) {
+        long entryStart = idxStart(entryIdx);
+        long entryLen = idxLen(entryIdx);
+
+        long keyIdx = keyMapper.map(chunk, entryStart, entryStart + entryLen);
+        long key1Start = idxStart(keyIdx);
+        long key1Len = idxLen(keyIdx);
+
+        if (key1Len != key2Len) {
             return false;
         }
 
-        for (long i = 0; i < keyLen; i++) {
-            if (chunk.byteAt(key1 + i) != key2.byteAt(start + i)) {
-                return false;
-            }
-        }
-
-        for (long i = 0; i < keyValueSeparator.length(); i++) {
-            if (chunk.byteAt(key1 + i + keyLen) != keyValueSeparator.byteAt(i)) {
+        for (long i = 0; i < key2Len; i++) {
+            if (chunk.byteAt(key1Start + i) != key2.byteAt(key2Start + i)) {
                 return false;
             }
         }
@@ -113,17 +125,15 @@ public class OneChunkByteStringMap {
         return true;
     }
 
-    private long keyLen(long addr) {
-        long idx = chunk.indexOf(keyValueSeparator, addr, chunk.length());
-        if (idx == -1) idx = chunk.length();
-        return idx - addr;
-    }
+    private ByteString value(long entryIdx) {
+        long entryStart = idxStart(entryIdx);
+        long entryLen = idxLen(entryIdx);
 
-    private ByteString value(long addr, long keyLen) {
-        long off = addr + keyLen + itemSeparator.length();
-        long idx = chunk.indexOf(itemSeparator, off, chunk.length());
-        if (idx == -1) idx = chunk.length();
-        return chunk.substring(off, idx);
+        long idx = valueMapper.map(chunk, entryStart, entryStart + entryLen);
+        long valueStart = idxStart(idx);
+        long valueLen = idxLen(idx);
+
+        return chunk.substring(valueStart, valueStart + valueLen);
     }
 
     private int openAddressItem(long hash, int nHash) {

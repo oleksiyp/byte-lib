@@ -6,7 +6,6 @@ import org.junit.Test;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static byte_lib.ByteString.bs;
@@ -172,7 +171,7 @@ public class ByteStringTest {
 
         ByteString val = ByteString.ba(arr, 1, 3);
 
-        assertThat(val.indexOf(bs("cd"), 0)).isEqualTo(1);
+        assertThat(val.indexOf(bs("cd"), 0, arr.length)).isEqualTo(1);
     }
 
     @Test
@@ -211,11 +210,20 @@ public class ByteStringTest {
     }
 
     @Test
+    public void fields() throws Exception {
+        assertThat(bs("aa bb cc").firstField()).isEqualTo(bs("aa"));
+        assertThat(bs("aa bb cc").secondField()).isEqualTo(bs("bb"));
+        assertThat(bs("aa bb cc").thirdField()).isEqualTo(bs("cc"));
+        assertThat(bs("aa bb cc").firstTwoFields()).isEqualTo(bs("aa bb"));
+        assertThat(bs("aa bb cc dd").firstThreeFields()).isEqualTo(bs("aa bb cc"));
+    }
+
+    @Test
     public void load() throws Exception {
         Path tempFile = Files.createTempFile("tmp", ".txt");
         tempFile.toFile().deleteOnExit();
         Files.write(tempFile, "abc\ndef\n".getBytes());
-        ByteString str = ByteString.load(tempFile.toFile().getAbsolutePath());
+        ByteString str = ByteFiles.readAll(tempFile.toFile().getAbsolutePath());
         assertThat(str).isEqualTo(bs("abc\ndef\n"));
     }
 }

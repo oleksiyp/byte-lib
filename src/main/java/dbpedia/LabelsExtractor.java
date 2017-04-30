@@ -8,9 +8,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 
-import static byte_lib.ByteString.EMPTY;
 import static byte_lib.ByteString.bs;
-import static dbpedia.Compressed.snappyPrintStream;
+import static byte_lib.ByteFiles.printStream;
 
 public class LabelsExtractor {
     public static final File IN_DIR = new File("data/labels");
@@ -28,12 +27,11 @@ public class LabelsExtractor {
                 IN_DIR,
                 progress);
 
-        try (PrintStream out = snappyPrintStream(OUT_FILE, progress)) {
-            files.forEach(file -> {
-                file.reportNFile()
-                        .countLines()
-                        .readRecords((record) -> writeLabel(out, record));
-            });
+        try (PrintStream out = printStream(OUT_FILE, progress)) {
+            files.forEach(file ->
+                    file.reportNFile()
+                            .countLines()
+                            .readRecords((record) -> writeLabel(out, record)));
         }
 
     }
@@ -43,8 +41,8 @@ public class LabelsExtractor {
             return;
         }
 
-        ByteString resourceLang = record.getDbpediaResourceLang();
-        ByteString resource = record.getDbpediaResource();
+        ByteString resourceLang = record.getDbpediaSubjectLang();
+        ByteString resource = record.getDbpediaSubject();
         if (resource == null || resourceLang == null) {
             return;
         }

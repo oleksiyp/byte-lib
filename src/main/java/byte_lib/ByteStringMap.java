@@ -1,5 +1,8 @@
 package byte_lib;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -153,9 +156,19 @@ public class ByteStringMap<T> implements Map<ByteString, T> {
 
     @Override
     public Set<ByteString> keySet() {
-        return entryStream()
-                .map(HashEntry::getKey)
-                .collect(Collectors.toSet());
+        return new AbstractSet<ByteString>() {
+            @Override
+            public Iterator<ByteString> iterator() {
+                return entryStream()
+                        .map(HashEntry::getKey)
+                        .iterator();
+            }
+
+            @Override
+            public int size() {
+                return ByteStringMap.this.size();
+            }
+        };
     }
 
     @Override
@@ -169,9 +182,19 @@ public class ByteStringMap<T> implements Map<ByteString, T> {
 
     @Override
     public Collection<T> values() {
-        return entryStream()
-                .map(HashEntry::getValue)
-                .collect(Collectors.toList());
+        return new AbstractCollection<T>() {
+            @Override
+            public Iterator<T> iterator() {
+                return entryStream()
+                        .map(HashEntry::getValue)
+                        .iterator();
+            }
+
+            @Override
+            public int size() {
+                return ByteStringMap.this.size();
+            }
+        };
     }
 
     @Override
