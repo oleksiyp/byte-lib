@@ -50,6 +50,9 @@ public class IdxByteStringMap {
     }
     
     public ByteString get(Object key) {
+        if (isEmpty()) {
+            return null;
+        }
         ByteString keyStr = (ByteString) key;
         long keyLen = keyStr.length();
         long hash = hasher.hashCode(keyStr, 0L, keyLen);

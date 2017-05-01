@@ -41,7 +41,6 @@ public class DbpediaFile {
 
     public DbpediaFile countLines() {
         ByteString allFile = readAll();
-        progress.message("Counting records in '" + file.getName() + "'");
         setLinesCount(allFile.howMuch(NEW_LINE));
         progress.message(getLinesCount() + " records in '" + file.getName() + "'");
         return this;
@@ -57,6 +56,7 @@ public class DbpediaFile {
             progress.reset(getLinesCount());
         }
 
+        progress.message("Parsing '" + file.getName() + "'");
         readAll().iterate(NEW_LINE, line  -> {
             if (getLinesCount() != 0) {
                 progress.progress(1);
@@ -146,9 +146,7 @@ public class DbpediaFile {
         File snappyFile = new File(file.getParent(), name);
         if (!snappyFile.isFile()) {
             progress.message("Recoding file to snappy");
-            if (content == null) {
-                content = readAll();
-            }
+            readAll();
             ByteFiles.writeAll(snappyFile, content, progress);
         }
         file = snappyFile;

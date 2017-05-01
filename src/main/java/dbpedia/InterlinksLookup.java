@@ -32,8 +32,8 @@ public class InterlinksLookup {
     public static final ByteString COLON = bs(":");
 
     private ByteStringMap<ByteString> mainPages;
-    private List<ByteString> specialPages;
-    private List<ByteString> templatePages;
+    private Set<ByteString> specialPages;
+    private Set<ByteString> templatePages;
 
     public static InterlinksLookup INTERLINKS;
 
@@ -59,8 +59,8 @@ public class InterlinksLookup {
 
     InterlinksLookup() {
         mainPages = new ByteStringMap<>();
-        specialPages = new ArrayList<>();
-        templatePages = new ArrayList<>();
+        specialPages = new HashSet<>();
+        templatePages = new HashSet<>();
     }
 
     private boolean load(Progress progress) {
@@ -74,8 +74,6 @@ public class InterlinksLookup {
             mainPages = loadMap(MAIN_PAGE_TXT, progress);
             ByteFiles.loadCollection(SPECIAL_TXT, specialPages, progress);
             ByteFiles.loadCollection(TEMPLATE_TXT, templatePages, progress);
-            Collections.sort(specialPages);
-            Collections.sort(templatePages);
         } catch (Exception ex) {
             return false;
         }

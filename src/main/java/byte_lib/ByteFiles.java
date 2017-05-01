@@ -29,22 +29,20 @@ public class ByteFiles {
         String name = file.getName();
         progress = voidIfNull(progress);
 
-        progress.message(format("Counting size of '%s'", name));
         long nBytes;
+        progress.message(format("Reading '%s'", name));
         try (ByteStringInputStream in = inputStream(file)) {
             nBytes = in.countBytes();
         } catch (IOException ex) {
             throw new IOError(ex);
         }
 
-        progress.message(format("Allocating %s for '%s'", Bytes.sizeToString(nBytes), name));
+        progress.message(format("%s to read", Bytes.sizeToString(nBytes)));
         try (ByteStringInputStream in = inputStream(file)) {
             ByteBuf buf = in.readAll(nBytes, progress);
             return ByteString.bb(buf);
         } catch (IOException ex) {
             throw new IOError(ex);
-        } finally {
-            progress.message(format("Done reading '%s'!", name));
         }
     }
 

@@ -11,7 +11,7 @@ public class ByteStringBuilder {
         buf = ByteBuffer.allocate(16);
     }
 
-    public ByteStringBuilder(int len) {
+    public ByteStringBuilder(long len) {
         buf = ByteBuffer.allocate(1 << nBits(len));
     }
 

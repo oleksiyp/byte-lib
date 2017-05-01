@@ -122,7 +122,7 @@ public class ImagesLookup {
                         .build());
     }
 
-    private ByteString getDepiction(ByteString langResource) {
+    public ByteString getDepiction(ByteString langResource) {
         return depictionMap.get(langResource);
     }
 

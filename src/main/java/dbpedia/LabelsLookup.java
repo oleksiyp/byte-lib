@@ -17,7 +17,7 @@ public class LabelsLookup {
 
     private static final ByteString RDF_SCHEMA_LABEL = bs("http://www.w3.org/2000/01/rdf-schema#label");
 
-    private static LabelsLookup LABELS;
+    public static LabelsLookup LABELS;
 
     private IdxByteStringMap labelsMap;
 
@@ -54,6 +54,7 @@ public class LabelsLookup {
                             .readRecords((record) -> writeLabel(out, record)));
         }
     }
+
     private void writeLabel(PrintStream out, DbpediaTuple record) {
         if (!RDF_SCHEMA_LABEL.equals(record.getPredicate())) {
             return;
@@ -100,7 +101,23 @@ public class LabelsLookup {
 
 
     public ByteString getLabel(ByteString langResource) {
-        return labelsMap.get(langResource);
+        ByteString ret = labelsMap.get(langResource);
+        if (ret == null) {
+            return resourceToLabel(langResource.secondField());
+        }
+        return ret;
+    }
+
+    public ByteString getLabel(ByteString lang, ByteString resource) {
+        if (labelsMap.isEmpty()) {
+            return resourceToLabel(resource);
+        }
+        return getLabel(
+                new ByteStringBuilder(lang.length() + resource.length() + 1)
+                        .append(lang)
+                        .append((byte) ' ')
+                        .append(resource)
+                        .build());
     }
 
     public static void main(String[] args) {

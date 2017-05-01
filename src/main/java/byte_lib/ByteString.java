@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class ByteString implements Comparable<ByteString> {
-    public static final ByteString EMPTY = new ByteString(ByteBuf.allocate(0));
+    public static final ByteString EMPTY = ByteString.ba(new byte[0], 0, 0);
     public static final ByteString SEPARATOR = bs(" ");
     public static final ByteString NEW_LINE = bs("\n");
 

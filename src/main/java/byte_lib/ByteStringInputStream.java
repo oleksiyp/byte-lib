@@ -152,9 +152,9 @@ public class ByteStringInputStream extends InputStream {
         progress.reset(sz);
         while (!eof) {
             readMore();
+            progress.progress(bufSz);
             result.put(buf, 0, bufSz);
             bufSz = 0;
-            progress.progress(bufSz);
         }
         result.flip();
         return result;

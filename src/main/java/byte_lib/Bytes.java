@@ -17,7 +17,7 @@ class Bytes {
         }
     }
 
-    public static int nBits(int capacity) {
+    public static int nBits(long capacity) {
         int bits = 0;
         while (capacity > 0) {
             bits++;

@@ -7,106 +7,63 @@ import java.util.OptionalDouble;
 import static byte_lib.ByteString.bs;
 
 public class PageViewRecord {
-    public static final ByteString SEPARATOR = bs(" ");
-    private final ByteString project;
-    private final ByteString title;
-    private final int views;
-    private final int size;
-    private ByteString concept;
+    private final ByteString lang;
+    private final ByteString resource;
+    private final int statCounter;
+    private double score;
+    private final ByteString thumbnail;
+    private final ByteString depiction;
+    private final ByteString label;
 
-    public PageViewRecord(ByteString project, ByteString title, int views, int size) {
-        this.project = project;
-        this.title = title;
-        this.views = views;
-        this.size = size;
+    public PageViewRecord(ByteString lang,
+                          ByteString resource,
+                          int statCounter,
+                          ByteString thumbnail,
+                          ByteString depiction,
+                          ByteString label) {
+        this.lang = lang;
+        this.resource = resource;
+        this.statCounter = statCounter;
+        this.thumbnail = thumbnail;
+        this.depiction = depiction;
+        this.label = label;
     }
 
-    public static PageViewRecord valueOf(ByteString record) {
-        ByteString[] text = record.split(SEPARATOR);
-        return new PageViewRecord(text[0].copyOf(),
-                text[1].copyOf(),
-                text[2].toInt(),
-                text[3].toInt());
-    }
-
-    public OptionalDouble getScore(MainPageRate mainPageRate) {
+    public void calcScore(MainPageRate mainPageRate) {
         if (mainPageRate.isCalculated()) {
-            return OptionalDouble.of(100.0 * getViews() / mainPageRate.get());
+            score = 100.0 * statCounter / mainPageRate.get();
         } else {
-            return OptionalDouble.empty();
+            score = 0.0;
         }
     }
 
-    public ByteString getFullTitle() {
-        return getProject()
-                .append(PageViewsTopExtractor.SEPARATOR2)
-                .append(getTitle());
+    public String getLang() {
+        return lang.toString();
     }
 
-    public ByteString getProject() {
-        return project;
+    public String getResource() {
+        return resource.toString();
     }
 
-    public ByteString getTitle() {
-        return title;
+    public int getStatCounter() {
+        return statCounter;
     }
 
-    public int getViews() {
-        return views;
+    public String getThumbnail() {
+        return thumbnail.toString();
     }
 
-    public int getSize() {
-        return size;
+    public String getDepiction() {
+        return depiction.toString();
     }
 
-    public ByteString getConcept() {
-        return concept;
+    public String getLabel() {
+        return label.toString();
     }
 
-    public void setConcept(ByteString concept) {
-        this.concept = concept;
+    public double getScore() {
+        return score;
     }
 
 
-    public ByteString format() {
-        return project
-                .append(SEPARATOR)
-                .append(title)
-                .append(SEPARATOR)
-                .append(bs("" + views))
-                .append(SEPARATOR)
-                .append(bs("" + size));
-    }
-
-    @Override
-    public String toString() {
-        return "PageViewRecord{" +
-                "chapter='" + project + '\'' +
-                ", item='" + title + '\'' +
-                ", views=" + views +
-                ", hosts=" + size +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PageViewRecord record = (PageViewRecord) o;
-
-        if (views != record.views) return false;
-        if (size != record.size) return false;
-        if (!project.equals(record.project)) return false;
-        return title.equals(record.title);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = project.hashCode();
-        result = 31 * result + title.hashCode();
-        result = 31 * result + views;
-        result = 31 * result + size;
-        return result;
-    }
 }
