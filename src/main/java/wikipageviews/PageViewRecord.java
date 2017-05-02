@@ -1,26 +1,24 @@
 package wikipageviews;
 
-import byte_lib.ByteString;
-
-import java.util.OptionalDouble;
-
-import static byte_lib.ByteString.bs;
-
 public class PageViewRecord {
-    private final ByteString lang;
-    private final ByteString resource;
-    private final int statCounter;
+    private String lang;
+    private String resource;
+    private int statCounter;
     private double score;
-    private final ByteString thumbnail;
-    private final ByteString depiction;
-    private final ByteString label;
+    private String thumbnail;
+    private String depiction;
+    private String label;
 
-    public PageViewRecord(ByteString lang,
-                          ByteString resource,
+    public PageViewRecord() {
+
+    }
+
+    public PageViewRecord(String lang,
+                          String resource,
                           int statCounter,
-                          ByteString thumbnail,
-                          ByteString depiction,
-                          ByteString label) {
+                          String thumbnail,
+                          String depiction,
+                          String label) {
         this.lang = lang;
         this.resource = resource;
         this.statCounter = statCounter;
@@ -29,41 +27,71 @@ public class PageViewRecord {
         this.label = label;
     }
 
-    public void calcScore(MainPageRate mainPageRate) {
-        if (mainPageRate.isCalculated()) {
-            score = 100.0 * statCounter / mainPageRate.get();
-        } else {
-            score = 0.0;
-        }
+    public static String getLangResource(PageViewRecord pvr) {
+        return pvr.getLang() + " " + pvr.getResource();
     }
 
     public String getLang() {
-        return lang.toString();
+        return lang;
+    }
+
+    public void setLang(String lang) {
+        this.lang = lang;
     }
 
     public String getResource() {
-        return resource.toString();
+        return resource;
+    }
+
+    public void setResource(String resource) {
+        this.resource = resource;
     }
 
     public int getStatCounter() {
         return statCounter;
     }
 
-    public String getThumbnail() {
-        return thumbnail.toString();
-    }
-
-    public String getDepiction() {
-        return depiction.toString();
-    }
-
-    public String getLabel() {
-        return label.toString();
+    public void setStatCounter(int statCounter) {
+        this.statCounter = statCounter;
     }
 
     public double getScore() {
         return score;
     }
 
+    public void setScore(double score) {
+        this.score = score;
+    }
 
+    public String getThumbnail() {
+        return thumbnail;
+    }
+
+    public void setThumbnail(String thumbnail) {
+        this.thumbnail = thumbnail;
+    }
+
+    public String getDepiction() {
+        return depiction;
+    }
+
+    public void setDepiction(String depiction) {
+        this.depiction = depiction;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
+    }
+
+    public static PageViewRecord topScorePageView(PageViewRecord pageViewRecord1, PageViewRecord pageViewRecord2) {
+        if (pageViewRecord1.score > pageViewRecord2.score) {
+            return pageViewRecord1;
+        } else {
+            return pageViewRecord2;
+        }
+    }
 }
