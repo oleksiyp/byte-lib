@@ -1,7 +1,6 @@
 package byte_lib;
 
-import sun.misc.Cleaner;
-import sun.misc.Unsafe;
+import sun.misc.*;
 
 import java.lang.reflect.Field;
 import java.nio.BufferOverflowException;
@@ -22,11 +21,33 @@ public class DirectByteBuf implements ByteBuf {
     private final Object attached;
 
     public DirectByteBuf(long size){
-        base = unsafe.allocateMemory(size);
+        base = allocate(size);
+        System.out.println("Allocated " + size);
         this.size = size;
         this.limit = size;
         cleaner = Cleaner.create(this, new Deallocator(base, size));
         attached = null;
+    }
+
+    private long allocate(long size) {
+        long base;
+        try {
+            base = unsafe.allocateMemory(size);
+        } catch (OutOfMemoryError x) {
+            doCleaning();
+            try {
+                base = unsafe.allocateMemory(size);
+            } catch (OutOfMemoryError x2) {
+                doCleaning();
+                try {
+                    Thread.sleep(1000L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                base = unsafe.allocateMemory(size);
+            }
+        }
+        return base;
     }
 
     DirectByteBuf(DirectByteBuf buf) {
@@ -250,6 +271,7 @@ public class DirectByteBuf implements ByteBuf {
         @Override
         public void run() {
             unsafe.freeMemory(base);
+            System.out.println("Deallocated " + size);
         }
     }
 
@@ -261,6 +283,11 @@ public class DirectByteBuf implements ByteBuf {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static void doCleaning() {
+        SharedSecrets.getJavaLangRefAccess().tryHandlePendingReference();
+        System.gc();
     }
 
 }

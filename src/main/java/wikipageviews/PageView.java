@@ -2,6 +2,7 @@ package wikipageviews;
 
 import byte_lib.ByteFiles;
 import byte_lib.ByteString;
+import byte_lib.ByteStringInputStream;
 import byte_lib.Progress;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import java.util.PriorityQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static byte_lib.ByteFiles.inputStream;
 import static byte_lib.ByteString.bs;
 import static dbpedia.ImagesLookup.IMAGES;
 import static dbpedia.InterlinksLookup.INTERLINKS;
@@ -53,18 +55,21 @@ public class PageView {
         topK = new PriorityQueue<>(
                 comparingInt(ByteStringPageViewRecord::getStatCounter));
 
-        readContent();
-        content.iterate(ByteString.NEW_LINE, (pageview) -> {
-            ByteStringPageViewRecord record = parseRecord(pageview);
-            if (record == null) {
-                return;
-            }
+        try (ByteStringInputStream in = inputStream(file)) {
+            in.readLines((pageview) -> {
+                ByteStringPageViewRecord record = parseRecord(pageview);
+                if (record == null) {
+                    return;
+                }
 
-            topK.add(record);
-            if (topK.size() > k) {
-                topK.remove();
-            }
-        });
+                topK.add(record);
+                if (topK.size() > k) {
+                    topK.remove();
+                }
+            });
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
 
         topRecords = new ArrayList<>();
         while (!topK.isEmpty()) {
@@ -123,12 +128,12 @@ public class PageView {
             return null;
         }
 
-        return new ByteStringPageViewRecord(lang,
-                resource,
+        return new ByteStringPageViewRecord(lang.copyOf(),
+                resource.copyOf(),
                 statCounter,
-                thumbnail,
-                depiction,
-                label);
+                thumbnail.copyOf(),
+                depiction.copyOf(),
+                label.copyOf());
     }
 
 
@@ -203,21 +208,36 @@ public class PageView {
         }
 
         progress.message("Downloading " + getFile());
-        try {
-            Request request = new Request.Builder()
-                    .url(url)
-                    .build();
+        for (int i = 1; i <= 10; i++) {
+            try {
+                Request request = new Request.Builder()
+                        .url(url)
+                        .build();
 
-            Response response = httpClient.newCall(request).execute();
-            if (response.isSuccessful()) {
-                Path out = Paths.get(file);
-                Files.createDirectories(out.getParent());
-                Files.copy(response.body().byteStream(), out, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                throw new IOException(response.message());
+                Response response = httpClient.newCall(request).execute();
+                if (response.isSuccessful()) {
+                    Path out = Paths.get(file);
+                    Files.createDirectories(out.getParent());
+                    Files.copy(response.body().byteStream(), out,
+                            StandardCopyOption.REPLACE_EXISTING);
+                    break;
+                } else {
+                    throw new IOException(response.message());
+                }
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+                try {
+                    Files.deleteIfExists(Paths.get(file));
+                } catch (IOException e1) {
+                    // skip
+                }
             }
-        } catch (IOException e) {
-            throw new IOError(e);
+            System.out.println("Retrying " + i);
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                break;
+            }
         }
         return this;
     }

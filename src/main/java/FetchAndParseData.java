@@ -18,6 +18,9 @@ import static byte_lib.ByteFiles.printStream;
 import static download.DumpWikimediaPageViews.fromMarch2015;
 
 public class FetchAndParseData {
+
+    public static final int K = 100;
+
     public static void main(String[] args) throws InterruptedException {
         Progress progress = Progress.toConsole(System.out);
 
@@ -35,7 +38,7 @@ public class FetchAndParseData {
             try {
                 pageView.setProgress(progress)
                         .download(downloadClient)
-                        .writeTopToJson(100)
+                        .writeTopToJson(K)
                         .discardContent();
 
                 String day = pageView.getDay();
@@ -67,6 +70,7 @@ public class FetchAndParseData {
                 .values()
                 .stream()
                 .sorted(Comparator.comparing(PageViewRecord::getScore).reversed())
+                .limit(K)
                 .collect(Collectors.toList());
 
         try (PrintStream out = printStream(fileName, progress)) {
