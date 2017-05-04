@@ -1,9 +1,9 @@
 package dbpedia;
 
-import byte_lib.ByteString;
-import byte_lib.ByteStringBuilder;
+import byte_lib.string.ByteString;
+import byte_lib.string.ByteStringBuilder;
 
-import static byte_lib.ByteString.bs;
+import static byte_lib.string.ByteString.bs;
 
 public class DbpediaTuple {
     public static final ByteString DBPEDIA_RESOURCE_PREFIX = bs("http://dbpedia.org/resource/");

@@ -1,8 +1,8 @@
 package wikipageviews;
 
-import byte_lib.ByteFiles;
-import byte_lib.ByteString;
-import byte_lib.ByteStringInputStream;
+import byte_lib.io.ByteFiles;
+import byte_lib.string.ByteString;
+import byte_lib.io.ByteStringInputStream;
 import byte_lib.Progress;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,8 +24,8 @@ import java.util.PriorityQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static byte_lib.ByteFiles.inputStream;
-import static byte_lib.ByteString.bs;
+import static byte_lib.io.ByteFiles.inputStream;
+import static byte_lib.string.ByteString.bs;
 import static dbpedia.ImagesLookup.IMAGES;
 import static dbpedia.InterlinksLookup.INTERLINKS;
 import static dbpedia.LabelsLookup.LABELS;

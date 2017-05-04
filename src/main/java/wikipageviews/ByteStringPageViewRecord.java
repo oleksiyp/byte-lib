@@ -1,6 +1,6 @@
 package wikipageviews;
 
-import byte_lib.ByteString;
+import byte_lib.string.ByteString;
 
 public class ByteStringPageViewRecord {
     private final ByteString lang;
@@ -68,7 +68,8 @@ public class ByteStringPageViewRecord {
                 statCounter,
                 thumbnail.toString(),
                 depiction.toString(),
-                label.toString()
+                label.toString(),
+                score
         );
     }
 }

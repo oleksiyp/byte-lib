@@ -1,15 +1,19 @@
 package dbpedia;
 
 import byte_lib.*;
+import byte_lib.hashed.IdxByteStringMap;
+import byte_lib.hashed.IdxMapper;
+import byte_lib.string.ByteString;
+import byte_lib.string.ByteStringBuilder;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
 
-import static byte_lib.ByteFiles.printStream;
-import static byte_lib.ByteFiles.readAll;
-import static byte_lib.ByteString.NEW_LINE;
-import static byte_lib.ByteString.bs;
+import static byte_lib.io.ByteFiles.printStream;
+import static byte_lib.io.ByteFiles.readAll;
+import static byte_lib.string.ByteString.NEW_LINE;
+import static byte_lib.string.ByteString.bs;
 
 public class LabelsLookup {
     public static final File IN_DIR = new File("data/labels");

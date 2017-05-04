@@ -1,10 +1,8 @@
 package dbpedia;
 
-import byte_lib.ByteString;
+import byte_lib.string.ByteString;
 
-import java.util.function.Function;
-
-import static byte_lib.ByteString.isSpaceByte;
+import static byte_lib.string.ByteString.isSpaceByte;
 
 public class DbpediaTupleParser {
     private State state;

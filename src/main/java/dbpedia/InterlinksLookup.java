@@ -1,18 +1,16 @@
 package dbpedia;
 
-import byte_lib.ByteFiles;
-import byte_lib.ByteString;
-import byte_lib.ByteStringMap;
+import byte_lib.io.ByteFiles;
+import byte_lib.string.ByteString;
+import byte_lib.hashed.ByteStringMap;
 import byte_lib.Progress;
 
 import java.io.File;
 import java.util.*;
 
-import static byte_lib.ByteFiles.loadMap;
-import static byte_lib.ByteFiles.readAll;
-import static byte_lib.ByteString.NEW_LINE;
-import static byte_lib.ByteString.bs;
-import static java.util.Arrays.asList;
+import static byte_lib.io.ByteFiles.loadMap;
+import static byte_lib.io.ByteFiles.readAll;
+import static byte_lib.string.ByteString.bs;
 
 public class InterlinksLookup {
     public static final File IN_DATA = new File("data/interlinks/interlanguage_links_en.tql.bz2");

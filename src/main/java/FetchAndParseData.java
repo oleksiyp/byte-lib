@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static byte_lib.ByteFiles.printStream;
+import static byte_lib.io.ByteFiles.printStream;
 import static download.DumpWikimediaPageViews.fromMarch2015;
 
 public class FetchAndParseData {
@@ -66,7 +66,7 @@ public class FetchAndParseData {
                 .collect(Collectors.toMap(
                         PageViewRecord::getLangResource,
                         Function.identity(),
-                        PageViewRecord::topScorePageView))
+                        PageViewRecord::mergeTwoPageViews))
                 .values()
                 .stream()
                 .sorted(Comparator.comparing(PageViewRecord::getScore).reversed())

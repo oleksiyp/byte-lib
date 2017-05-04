@@ -18,13 +18,15 @@ public class PageViewRecord {
                           int statCounter,
                           String thumbnail,
                           String depiction,
-                          String label) {
+                          String label,
+                          double score) {
         this.lang = lang;
         this.resource = resource;
         this.statCounter = statCounter;
         this.thumbnail = thumbnail;
         this.depiction = depiction;
         this.label = label;
+        this.score = score;
     }
 
     public static String getLangResource(PageViewRecord pvr) {
@@ -87,7 +89,8 @@ public class PageViewRecord {
         this.label = label;
     }
 
-    public static PageViewRecord topScorePageView(PageViewRecord pageViewRecord1, PageViewRecord pageViewRecord2) {
+    public static PageViewRecord mergeTwoPageViews(PageViewRecord pageViewRecord1,
+                                                   PageViewRecord pageViewRecord2) {
         if (pageViewRecord1.score > pageViewRecord2.score) {
             return pageViewRecord1;
         } else {

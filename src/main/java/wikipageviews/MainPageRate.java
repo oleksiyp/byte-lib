@@ -1,8 +1,8 @@
 package wikipageviews;
 
-import byte_lib.ByteString;
+import byte_lib.string.ByteString;
 
-import static byte_lib.ByteString.bs;
+import static byte_lib.string.ByteString.bs;
 
 public class MainPageRate {
     public static final ByteString MAIN_PAGE_CONCEPT = bs("Main_Page");

@@ -1,7 +1,7 @@
 package dbpedia;
 
-import byte_lib.ByteFiles;
-import byte_lib.ByteString;
+import byte_lib.io.ByteFiles;
+import byte_lib.string.ByteString;
 import byte_lib.Progress;
 
 import java.io.File;
@@ -11,8 +11,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static byte_lib.ByteString.NEW_LINE;
-import static byte_lib.ByteString.bs;
+import static byte_lib.string.ByteString.NEW_LINE;
+import static byte_lib.string.ByteString.bs;
 
 public class DbpediaFile {
     public static final ByteString COMMENT_START = bs("#");

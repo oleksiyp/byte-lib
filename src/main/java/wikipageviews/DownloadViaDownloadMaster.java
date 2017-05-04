@@ -1,7 +1,7 @@
 package wikipageviews;
 
-import byte_lib.ByteFiles;
-import byte_lib.ByteString;
+import byte_lib.io.ByteFiles;
+import byte_lib.string.ByteString;
 
 import java.io.IOException;
 import java.io.PrintStream;

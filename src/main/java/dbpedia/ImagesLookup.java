@@ -1,17 +1,21 @@
 package dbpedia;
 
 import byte_lib.*;
+import byte_lib.hashed.IdxByteStringMap;
+import byte_lib.hashed.IdxMapper;
+import byte_lib.io.ByteFiles;
+import byte_lib.string.ByteString;
+import byte_lib.string.ByteStringBuilder;
 
 import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
-import static byte_lib.ByteFiles.readAll;
-import static byte_lib.ByteString.NEW_LINE;
-import static byte_lib.ByteString.SEPARATOR;
-import static byte_lib.ByteString.bs;
+import static byte_lib.io.ByteFiles.readAll;
+import static byte_lib.string.ByteString.NEW_LINE;
+import static byte_lib.string.ByteString.SEPARATOR;
+import static byte_lib.string.ByteString.bs;
 
 public class ImagesLookup {
     public static final File IN_DATA = new File("data/images");
