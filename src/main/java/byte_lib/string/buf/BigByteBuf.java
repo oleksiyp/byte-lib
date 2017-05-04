@@ -8,7 +8,9 @@ import java.nio.BufferUnderflowException;
 
 import static java.lang.String.format;
 
-public class DirectByteBuf implements ByteBuf {
+public class BigByteBuf implements ByteBuf {
+    public static final long COPY_SIZE = 1024L * 1024;
+    public static final int SMALL_BUFFER_SIZE = 6;
     static Unsafe unsafe = getUnsafe();
 
     private static final long arrayBaseOffset = (long)unsafe.arrayBaseOffset(byte[].class);
@@ -20,7 +22,7 @@ public class DirectByteBuf implements ByteBuf {
     private long limit;
     private final Object attached;
 
-    public DirectByteBuf(long size){
+    public BigByteBuf(long size){
         base = allocate(size);
         System.out.println("Allocated " + size);
         this.size = size;
@@ -50,7 +52,7 @@ public class DirectByteBuf implements ByteBuf {
         return base;
     }
 
-    DirectByteBuf(DirectByteBuf buf) {
+    BigByteBuf(BigByteBuf buf) {
         attached = buf;
         cleaner = null;
         base = buf.base;
@@ -83,10 +85,11 @@ public class DirectByteBuf implements ByteBuf {
 
     @Override
     public ByteBuf put(ByteBuf src) {
-        if (src instanceof DirectByteBuf) {
-            if (src == this)
+        if (src instanceof BigByteBuf) {
+            if (src == this) {
                 throw new IllegalArgumentException();
-            DirectByteBuf sb = (DirectByteBuf)src;
+            }
+            BigByteBuf sb = (BigByteBuf)src;
 
             long spos = sb.position();
             long slim = sb.limit();
@@ -116,51 +119,57 @@ public class DirectByteBuf implements ByteBuf {
 
     @Override
     public ByteBuf put(byte[] src, int offset, int length) {
-        if (length > 6) {
-            checkBounds(offset, length, src.length);
-            long pos = position();
-            long lim = limit();
-            long rem = (pos <= lim ? lim - pos : 0);
-            if (length > rem)
-                throw new BufferOverflowException();
-
-            copyFromArray(src, arrayBaseOffset, offset, base + pos, length);
-            position(pos + length);
-        } else {
-            int j = offset;
-            for (long i = 0; i < length; i++) {
-                put(src[j++]);
-            }
+        if (length <= SMALL_BUFFER_SIZE) {
+            putSmallBuffer(src, offset, length);
+            return this;
         }
+        checkBounds(offset, length, src.length);
+        long pos = position();
+        long lim = limit();
+        long rem = (pos <= lim ? lim - pos : 0);
+        if (length > rem)
+            throw new BufferOverflowException();
+
+        copyFromArray(src, arrayBaseOffset, offset, base + pos, length);
+        position(pos + length);
         return this;
     }
 
+    private void putSmallBuffer(byte[] src, int offset, int length) {
+        int j = offset;
+        for (long i = 0; i < length; i++) {
+            put(src[j++]);
+        }
+    }
+
     public ByteBuf get(byte[] dst, int offset, int length) {
-
-        if (length > 6) {
-            checkBounds(offset, length, dst.length);
-            long pos = position();
-            long lim = limit();
-            assert (pos <= lim);
-            long rem = (pos <= lim ? lim - pos : 0);
-            if (length > rem) {
-                throw new BufferUnderflowException();
-            }
-
-            copyToArray(base + pos, dst, arrayBaseOffset, offset, length);
-            position(pos + length);
-        } else {
-            checkBounds(offset, length, dst.length);
-            if (length > limit() - position()) {
-                throw new BufferUnderflowException();
-            }
-            int end = offset + length;
-            for (int i = offset; i < end; i++) {
-                dst[i] = get();
-            }
+        if (length <= SMALL_BUFFER_SIZE) {
+            getSmallBuffer(dst, offset, length);
             return this;
         }
+        checkBounds(offset, length, dst.length);
+        long pos = position();
+        long lim = limit();
+        assert (pos <= lim);
+        long rem = (pos <= lim ? lim - pos : 0);
+        if (length > rem) {
+            throw new BufferUnderflowException();
+        }
+
+        copyToArray(base + pos, dst, arrayBaseOffset, offset, length);
+        position(pos + length);
         return this;
+    }
+
+    private void getSmallBuffer(byte[] dst, int offset, int length) {
+        checkBounds(offset, length, dst.length);
+        if (length > limit() - position()) {
+            throw new BufferUnderflowException();
+        }
+        int end = offset + length;
+        for (int i = offset; i < end; i++) {
+            dst[i] = get();
+        }
     }
 
     private static void checkBounds(int off, int len, int size) { // package-private
@@ -176,7 +185,7 @@ public class DirectByteBuf implements ByteBuf {
     {
         long offset = srcBaseOffset + srcPos;
         while (length > 0) {
-            long size = (length > 1024L * 1024) ? 1024L * 1024: length;
+            long size = (length > COPY_SIZE) ? COPY_SIZE : length;
             unsafe.copyMemory(src, offset, null, dstAddr, size);
             length -= size;
             offset += size;
@@ -192,7 +201,7 @@ public class DirectByteBuf implements ByteBuf {
     {
         long offset = dstBaseOffset + dstPos;
         while (length > 0) {
-            long size = (length > 1024L * 1024) ? 1024L * 1024 : length;
+            long size = (length > COPY_SIZE) ? COPY_SIZE : length;
             unsafe.copyMemory(null, srcAddr, dst, offset, size);
             length -= size;
             srcAddr += size;
@@ -200,12 +209,6 @@ public class DirectByteBuf implements ByteBuf {
         }
     }
 
-
-    @Override
-    public ByteBuf get(byte[] buf) {
-        get(buf, 0, buf.length);
-        return this;
-    }
 
     public byte get() {
         return unsafe.getByte(base + nextGetIndex());
@@ -217,8 +220,8 @@ public class DirectByteBuf implements ByteBuf {
     }
 
     @Override
-    public ByteBuf put(long index, byte b) {
-        unsafe.putByte(base + checkIndex(index), b);
+    public ByteBuf put(long idx, byte b) {
+        unsafe.putByte(base + checkIndex(idx), b);
         return this;
     }
 
@@ -229,7 +232,7 @@ public class DirectByteBuf implements ByteBuf {
 
     @Override
     public ByteBuf duplicate() {
-        return new DirectByteBuf(this);
+        return new BigByteBuf(this);
     }
 
     @Override
@@ -254,8 +257,9 @@ public class DirectByteBuf implements ByteBuf {
     }
 
     private long nextPutIndex() {
-        if (position >= limit)
+        if (position >= limit) {
             throw new BufferOverflowException();
+        }
         return position++;
     }
 

@@ -24,20 +24,21 @@ public class WrappedByteBuf implements ByteBuf {
         return buffer.get((int) index);
     }
 
-    public ByteBuf put(long index, byte b) {
-        buffer.put((int) index, b);
+    public ByteBuf put(long idx, byte b) {
+        buffer.put((int) idx, b);
         return this;
     }
 
     @Override
-    public ByteBuf get(byte[] dst) {
-        buffer.get(dst);
+    public ByteBuf get(byte[] buf, int off, int len) {
+        buffer.get(buf, off, len);
         return this;
     }
+
 
     @Override
     public ByteBuf put(byte[] src, int offset, int length) {
-        buffer.put(src, (int) offset, (int) length);
+        buffer.put(src, offset, length);
         return this;
     }
 

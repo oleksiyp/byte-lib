@@ -1,4 +1,4 @@
-package dbpedia;
+package byte_lib.ordered;
 
 import byte_lib.io.ByteFiles;
 import byte_lib.string.ByteString;
@@ -15,7 +15,7 @@ public class FileSorter {
         progress = Progress.voidIfNull(progress);
 
         ByteString inFileContent = ByteFiles.readAll(inFile, progress);
-        progress.message("Splitting");
+        progress.message("Splitting lines");
 
         long[] items = inFileContent.splitIdx(ByteString.NEW_LINE);
         progress.message("Sorting " + items.length + " entries");

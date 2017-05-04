@@ -4,7 +4,9 @@ import java.nio.ByteBuffer;
 
 public interface ByteBuf {
     static ByteBuf allocate(long length) {
-        return new DirectByteBuf(length);
+        return length <= Integer.MAX_VALUE
+                ? wrap(ByteBuffer.allocate((int) length))
+                : new BigByteBuf(length);
     }
 
     static ByteBuf wrap(ByteBuffer buffer) {
@@ -19,15 +21,15 @@ public interface ByteBuf {
 
     ByteBuf limit(long end);
 
-    ByteBuf put(ByteBuf buffer);
-
     ByteBuf put(byte[] buf, int off, int len);
 
-    ByteBuf get(byte[] buf);
+    ByteBuf put(ByteBuf buffer);
+
+    ByteBuf put(long idx, byte b);
+
+    ByteBuf get(byte[] buf, int off, int len);
 
     byte get(long idx);
-
-    ByteBuf put(long index, byte b);
 
     ByteBuf duplicate();
 

@@ -16,7 +16,6 @@ public class ByteStringBuilder {
     public ByteStringBuilder clear() {
         buf.position(0).limit(buf.capacity());
         return this;
-
     }
 
     public ByteString build() {

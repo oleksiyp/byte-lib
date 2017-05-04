@@ -11,19 +11,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static byte_lib.string.buf.ByteBuf.wrap;
+
 public class ByteString implements Comparable<ByteString> {
-    public static final ByteString EMPTY = ByteString.ba(new byte[0], 0, 0);
+    public static final ByteString EMPTY = bs("");
     public static final ByteString SEPARATOR = bs(" ");
     public static final ByteString NEW_LINE = bs("\n");
 
+    public static final int EXCHANGE_BUF_SIZE = 64 * 1024;
+    public static final int SMALL_WRITE_TO_THRESHOLD = 20;
+
     private final ByteBuf buffer;
 
-    public ByteString(ByteBuf buffer) {
+    private ByteString(ByteBuf buffer) {
         this.buffer = buffer;
     }
 
     public static ByteString bb(ByteBuffer buf) {
-        return new ByteString(ByteBuf.wrap(buf));
+        return new ByteString(wrap(buf));
     }
 
     public static ByteString bb(ByteBuf buf) {
@@ -35,32 +40,15 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public static ByteString bs(String s, Charset charset) {
-        byte[] buf = s.getBytes(charset);
-        ByteBuffer buffer = ByteBuffer.allocateDirect(buf.length);
-        buffer.put(buf).flip();
-        return new ByteString(ByteBuf.wrap(buffer));
+        return ba(s.getBytes(charset));
     }
 
     public static ByteString ba(byte[] buffer, int offset, int length) {
-        return new ByteString(ByteBuf.wrap(ByteBuffer.wrap(buffer, offset, length)));
+        return new ByteString(wrap(ByteBuffer.wrap(buffer, offset, length)));
     }
 
-    public ByteString cut(ByteString start, ByteString end) {
-        long sIdx = 0;
-        if (startsWith(start)) {
-            sIdx += start.length();
-        } else {
-            return null;
-        }
-
-        long eIdx = length();
-        if (endsWith(end)) {
-            eIdx -= end.length();
-        } else {
-            return null;
-        }
-
-        return substring(sIdx, eIdx);
+    public static ByteString ba(byte[] buffer) {
+        return ba(buffer, 0, buffer.length);
     }
 
     public long length() {
@@ -68,12 +56,11 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public ByteString copyOf() {
-        ByteBuf buf = ByteBuf.wrap(ByteBuffer.allocate((int) length()));
+        ByteBuf buf = ByteBuf.allocate(length());
         long pos = buffer.position();
-        long end = buffer.limit();
         buf.put(buffer);
-        buffer.position(pos).limit(end);
-        buf.position(0).limit(length());
+        buffer.position(pos);
+        buf.flip();
         return new ByteString(buf);
     }
 
@@ -86,11 +73,12 @@ public class ByteString implements Comparable<ByteString> {
 
         ByteString that = (ByteString) o;
 
-        if (length() != that.length()) {
+        long len = length();
+        if (len != that.length()) {
             return false;
         }
 
-        for (int i = 0; i < length(); i++) {
+        for (int i = 0; i < len; i++) {
             if (byteAt(i) != that.byteAt(i)) {
                 return false;
             }
@@ -101,8 +89,9 @@ public class ByteString implements Comparable<ByteString> {
     @Override
     public int hashCode() {
         long result = 1;
-        result = 31 * result + length();
-        for (int i = 0; i < length(); i++) {
+        long len = length();
+        result = 31 * result + len;
+        for (int i = 0; i < len; i++) {
             result = 31 * result + byteAt(i);
         }
         return (int) result;
@@ -114,19 +103,40 @@ public class ByteString implements Comparable<ByteString> {
         long len = Math.min(Integer.MAX_VALUE, length());
         byte buf[] = new byte[(int) len];
         long pos = buffer.position();
-        long end = buffer.limit();
-        buffer.get(buf);
-        buffer.position(pos).limit(end);
+        buffer.get(buf, 0, buf.length);
+        buffer.position(pos);
         return new String(buf, 0, buf.length);
     }
 
     public void writeTo(OutputStream out) {
         try {
-            for (long i = 0; i < length(); i++) {
-                    out.write((int) byteAt(i));
+            long length = length();
+            if (length < SMALL_WRITE_TO_THRESHOLD) {
+                smallWriteTo(out, length);
+                return;
             }
+
+            long bufLen = length;
+            if (bufLen > EXCHANGE_BUF_SIZE) bufLen = EXCHANGE_BUF_SIZE;
+            byte[] buf = new byte[(int) bufLen];
+
+            long pos = buffer.position();
+            while (length > 0) {
+                int size = (int) Math.min(buf.length, length);
+                buffer.get(buf, 0, size);
+                out.write(buf, 0, size);
+                length = length();
+            }
+
+            buffer.position(pos);
         } catch (IOException e) {
             throw new IOError(e);
+        }
+    }
+
+    private void smallWriteTo(OutputStream out, long length) throws IOException {
+        for (long i = 0; i < length; i++) {
+            out.write(byteAt(i));
         }
     }
 
@@ -157,9 +167,9 @@ public class ByteString implements Comparable<ByteString> {
     public ByteString trim() {
         long from = 0;
         long to = length();
-        while (isSpaceByte(byteAt(from)) && from < to)
+        while (from < to && isSpaceByte(byteAt(from)))
             from++;
-        while (isSpaceByte(byteAt(to - 1)) && from < to)
+        while (from < to && isSpaceByte(byteAt(to - 1)))
             to--;
         return substring(from, to);
     }
@@ -308,7 +318,7 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public ByteString append(ByteString otherStr) {
-        ByteBuf buf = ByteBuf.wrap(ByteBuffer.allocate((int) (length() + otherStr.length())));
+        ByteBuf buf = wrap(ByteBuffer.allocate((int) (length() + otherStr.length())));
         long pos = buffer.position();
         long end = buffer.limit();
 
@@ -551,7 +561,7 @@ public class ByteString implements Comparable<ByteString> {
     }
 
     public ByteString replace(byte from, byte to) {
-        ByteBuf buf = ByteBuf.wrap(ByteBuffer.allocate((int) length()));
+        ByteBuf buf = wrap(ByteBuffer.allocate((int) length()));
         long pos = buffer.position();
         long end = buffer.limit();
         buf.put(buffer);
@@ -565,5 +575,23 @@ public class ByteString implements Comparable<ByteString> {
         buffer.position(pos).limit(end);
         buf.position(0).limit(end - pos);
         return new ByteString(buf);
+    }
+
+    public ByteString cut(ByteString start, ByteString end) {
+        long sIdx = 0;
+        if (startsWith(start)) {
+            sIdx += start.length();
+        } else {
+            return null;
+        }
+
+        long eIdx = length();
+        if (endsWith(end)) {
+            eIdx -= end.length();
+        } else {
+            return null;
+        }
+
+        return substring(sIdx, eIdx);
     }
 }
