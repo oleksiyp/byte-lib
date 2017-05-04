@@ -1,10 +1,11 @@
+package wikipageviews;
+
 import byte_lib.Progress;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.okhttp.OkHttpClient;
-import wikipageviews.PageView;
-import wikipageviews.PageViewRecord;
 
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -15,11 +16,21 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static byte_lib.io.ByteFiles.printStream;
-import static download.DumpWikimediaPageViews.fromMarch2015;
+import static download.WikimediaDataSet.fromMarch2015;
+import static java.util.stream.Collectors.toList;
 
-public class FetchAndParseData {
+public class PageViewFetcher {
 
     public static final int K = 100;
+    private final OkHttpClient downloadClient;
+    private Progress progress;
+    private int topK;
+
+    public PageViewFetcher(OkHttpClient downloadClient, Progress progress, int topK) {
+        this.downloadClient = downloadClient;
+        this.progress = progress;
+        this.topK = topK;
+    }
 
     public static void main(String[] args) throws InterruptedException {
         Progress progress = Progress.toConsole(System.out);
@@ -29,32 +40,44 @@ public class FetchAndParseData {
         OkHttpClient downloadClient = new OkHttpClient();
         List<PageView> pageViews = fromMarch2015().getPageViews();
 
+        PageViewFetcher fetcher = new PageViewFetcher(downloadClient, progress, K);
+
         Map<String, List<PageView>> pageViewsPerDay =
                 pageViews
                         .stream()
                         .collect(Collectors.groupingBy(PageView::getDay));
 
-        for (PageView pageView : pageViews) {
-            try {
-                pageView.setProgress(progress)
-                        .download(downloadClient)
-                        .writeTopToJson(K)
-                        .discardContent();
+        List<String> days = pageViewsPerDay.keySet()
+                .stream()
+                .sorted(Comparator.reverseOrder())
+                .collect(toList());
 
-                String day = pageView.getDay();
-                List<PageView> grouped = pageViewsPerDay.get(day);
-                if (grouped.stream().allMatch(PageView::hasTopRecords)) {
-                    writeGroupedPerDay(progress,
-                            grouped,
-                            "daily/" + day + ".json");
-                }
+        for (String day : days) {
+            try {
+                fetcher.parseDay(pageViewsPerDay.get(day), "daily/" + day + ".json");
             } catch (IOException e) {
                 // skip
             }
         }
     }
 
-    private static void writeGroupedPerDay(Progress progress, List<PageView> grouped, String fileName) throws IOException {
+    private void parseFile(PageView pageView) {
+        try {
+            pageView.setProgress(progress)
+                    .download(downloadClient)
+                    .writeTopToJson(topK);
+        } catch (IOException err) {
+            throw new IOError(err);
+        }
+    }
+
+    private void parseDay(List<PageView> pageViews, String fileName) throws IOException {
+        pageViews.forEach(this::parseFile);
+
+        aggregateDayTop(pageViews, fileName);
+    }
+
+    private void aggregateDayTop(List<PageView> grouped, String fileName) throws IOException {
         File file = new File(fileName);
         if (file.isFile()) {
             return;
@@ -70,11 +93,13 @@ public class FetchAndParseData {
                 .values()
                 .stream()
                 .sorted(Comparator.comparing(PageViewRecord::getScore).reversed())
-                .limit(K)
-                .collect(Collectors.toList());
+                .limit(topK)
+                .collect(toList());
 
         try (PrintStream out = printStream(fileName, progress)) {
             new ObjectMapper().writeValue(out, topPerDay);
+        } catch (IOException ex) {
+            throw new IOError(ex);
         }
     }
 

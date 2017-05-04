@@ -27,7 +27,6 @@ public class DbpediaTupleParser {
         OBJECT_TEXT_QUOTE,
         OBJECT_TEXT_END,
         OBJECT_TEXT_LANG,
-        OBJECT_END,
         SKIP_REST
     }
 
@@ -36,76 +35,78 @@ public class DbpediaTupleParser {
 
         for (int i = 0; i <= line.length(); i++) {
             byte b = i < line.length() ? line.byteAt(i) : (byte) ' ';
-            if (inState(State.SKIP_REST)) {
+            if (in(State.SKIP_REST)) {
                 // skip
-            } else if (inState(State.START) && b == '<') {
+            } else if (in(State.START) && b == '<') {
                 start = i + 1;
-                state = State.SUBJECT;
-            } else if (inState(State.SUBJECT) && b == '>') {
+                switchTo(State.SUBJECT);
+            } else if (in(State.SUBJECT) && b == '>') {
                 subject = line.substring(start, i);
-                state = State.SUBJECT_END;
-            } else if (inState(State.SUBJECT_END) && b == '<') {
+                switchTo(State.SUBJECT_END);
+            } else if (in(State.SUBJECT_END) && b == '<') {
                 start = i + 1;
-                state = State.PREDICATE;
-            } else if (inState(State.PREDICATE) && b == '>') {
+                switchTo(State.PREDICATE);
+            } else if (in(State.PREDICATE) && b == '>') {
                 predicate = line.substring(start, i);
-                state = State.PREDICATE_END;
-            } else if (inState(State.PREDICATE_END) && b == '<') {
+                switchTo(State.PREDICATE_END);
+            } else if (in(State.PREDICATE_END) && b == '<') {
                 start = i + 1;
-                state = State.OBJECT;
-            } else if (inState(State.OBJECT) && b == '>') {
+                switchTo(State.OBJECT);
+            } else if (in(State.OBJECT) && b == '>') {
                 objectIsUri = true;
                 object = line.substring(start, i);
-                state = State.SKIP_REST;
-            } else if (inState(State.PREDICATE_END) && b == '\"') {
+                switchTo(State.SKIP_REST);
+            } else if (in(State.PREDICATE_END) && b == '\"') {
                 start = i + 1;
-                state = State.OBJECT_TEXT;
-            } else if (inState(State.OBJECT_TEXT) && b == '\"') {
+                switchTo(State.OBJECT_TEXT);
+            } else if (in(State.OBJECT_TEXT) && b == '\"') {
                 objectIsUri = false;
                 object = line.substring(start, i);
-                state = State.OBJECT_TEXT_END;
-            } else if (inState(State.OBJECT_TEXT) && b == '\\') {
-                state = State.OBJECT_TEXT_QUOTE;
-            } else if (inState(State.OBJECT_TEXT_QUOTE) && b == '\"') {
-                state = State.OBJECT_TEXT;
-            } else if (inState(State.OBJECT_TEXT_QUOTE) && b == '\\') {
-                state = State.OBJECT_TEXT;
-            } else if (inState(State.OBJECT_TEXT_END) && b == '@') {
+                switchTo(State.OBJECT_TEXT_END);
+            } else if (in(State.OBJECT_TEXT) && b == '\\') {
+                switchTo(State.OBJECT_TEXT_QUOTE);
+            } else if (in(State.OBJECT_TEXT_QUOTE) && b == '\"') {
+                switchTo(State.OBJECT_TEXT);
+            } else if (in(State.OBJECT_TEXT_QUOTE) && b == '\\') {
+                switchTo(State.OBJECT_TEXT);
+            } else if (in(State.OBJECT_TEXT_END) && b == '@') {
                 start = i + 1;
-                state = State.OBJECT_TEXT_LANG;
-            } else if (inState(State.OBJECT_TEXT_LANG) && isSpaceByte(b)) {
+                switchTo(State.OBJECT_TEXT_LANG);
+            } else if (in(State.OBJECT_TEXT_LANG) && isSpaceByte(b)) {
                 objectLang = line.substring(start, i);
-                state = State.SKIP_REST;
-            } else if (inState(State.OBJECT_TEXT_END)) {
-                state = State.SKIP_REST;
-            } else if (inState(State.SUBJECT) || inState(State.OBJECT) || inState(State.PREDICATE)
-                    || inState(State.OBJECT_TEXT) || inState(State.OBJECT_TEXT_LANG)) {
+                switchTo(State.SKIP_REST);
+            } else if (in(State.OBJECT_TEXT_END)) {
+                switchTo(State.SKIP_REST);
+            } else if (in(State.SUBJECT) || in(State.OBJECT) || in(State.PREDICATE)
+                    || in(State.OBJECT_TEXT) || in(State.OBJECT_TEXT_LANG)) {
                 // skip
             } else if (isSpaceByte(b)) {
                 // skip
             } else {
                 error = "Error at '" + line.substring(i) + "' in state " + state;
-                System.out.println(error);
                 return null;
             }
         }
         if (state != State.SKIP_REST) {
             error = "Finished parsing in wrong state " + state + ": " + line;
-            System.out.println(error);
             return null;
         }
         return new DbpediaTuple(subject, predicate, objectIsUri, object, objectLang);
     }
 
+    private void switchTo(State newState) {
+        state = newState;
+    }
+
     private void reset() {
-        state = State.START;
+        switchTo(State.START);
         subject = object = predicate = objectLang = null;
         objectIsUri = false;
         start = end = -1;
         error = null;
     }
 
-    private boolean inState(State state) {
+    private boolean in(State state) {
         return this.state == state;
     }
 

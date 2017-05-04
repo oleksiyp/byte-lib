@@ -1,6 +1,5 @@
 package download;
 
-import byte_lib.Progress;
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -15,18 +14,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.reverseOrder;
-import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 
-public class DumpWikimediaPageViews {
+public class WikimediaDataSet {
     public static final String START_URL = "https://dumps.wikimedia.org/other/pageviews/";
 
     public static final String BASE_DIR = "data/dump.wikimedia.org";
@@ -38,7 +34,7 @@ public class DumpWikimediaPageViews {
 
     public static final Pattern PAGE_VIEW_PATTERN = Pattern.compile("\\d+/\\d+-\\d+/pageviews-\\d+-\\d+\\.gz");
 
-    public DumpWikimediaPageViews(String startUrl, File cacheFile, String downloadBaseDir) {
+    public WikimediaDataSet(String startUrl, File cacheFile, String downloadBaseDir) {
         this.startUrl = startUrl;
 
         int cacheSize = 200 * 1024 * 1024; // 10 MiB
@@ -50,9 +46,9 @@ public class DumpWikimediaPageViews {
         this.downloadBaseDir = downloadBaseDir;
     }
 
-    public DumpWikimediaPageViews init() {
+    public WikimediaDataSet init() {
         ForkJoinPool pool = new ForkJoinPool(4);
-        Set<String> allUrls = pool.invoke(new DownloadIndexTask(client, startUrl));
+        Set<String> allUrls = pool.invoke(new DownloadIndexHtmlTask(client, startUrl));
 
         pageViews = allUrls.stream()
                 .filter((url) -> url.startsWith(startUrl))
@@ -80,24 +76,24 @@ public class DumpWikimediaPageViews {
         return pageViews;
     }
 
-    public static DumpWikimediaPageViews fromMarch2015() {
+    public static WikimediaDataSet fromMarch2015() {
         return fromMarch2015(BASE_DIR);
     }
 
-    public static DumpWikimediaPageViews fromMarch2015(String baseDir) {
-        return new DumpWikimediaPageViews(
+    public static WikimediaDataSet fromMarch2015(String baseDir) {
+        return new WikimediaDataSet(
                 START_URL,
                 new File(baseDir + "/cache"),
                 baseDir + "/download/")
                 .init();
     }
 
-    private static class DownloadIndexTask extends RecursiveTask<Set<String>> {
+    private static class DownloadIndexHtmlTask extends RecursiveTask<Set<String>> {
         private OkHttpClient client;
         private String url;
         public List<String> list;
 
-        public DownloadIndexTask(OkHttpClient client, String url) {
+        public DownloadIndexHtmlTask(OkHttpClient client, String url) {
             this.client = client;
             this.url = url;
         }
@@ -114,9 +110,9 @@ public class DumpWikimediaPageViews {
             Set<String> list = new HashSet<>();
             extractLinks(response, list);
 
-            List<DownloadIndexTask> subTasks = new ArrayList<>();
+            List<DownloadIndexHtmlTask> subTasks = new ArrayList<>();
             for (String referenced : list) {
-                DownloadIndexTask task = indexDownloadTask(referenced);
+                DownloadIndexHtmlTask task = indexDownloadTask(referenced);
                 if (task == null) {
                     continue;
                 }
@@ -124,14 +120,14 @@ public class DumpWikimediaPageViews {
                 subTasks.add(task);
             }
 
-            for (DownloadIndexTask task : subTasks) {
+            for (DownloadIndexHtmlTask task : subTasks) {
                 list.addAll(task.join());
             }
 
             return list;
         }
 
-        private DownloadIndexTask indexDownloadTask(String referencedUrl) {
+        private DownloadIndexHtmlTask indexDownloadTask(String referencedUrl) {
             if (!referencedUrl.startsWith(url)) {
                 return null;
             }
@@ -141,7 +137,7 @@ public class DumpWikimediaPageViews {
                 return null;
             }
 
-            return new DownloadIndexTask(client, referencedUrl);
+            return new DownloadIndexHtmlTask(client, referencedUrl);
         }
 
         private void extractLinks(Response response, Set<String> list) {

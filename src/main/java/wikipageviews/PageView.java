@@ -39,7 +39,6 @@ public class PageView {
 
     private MainPageRate rate;
     private Progress progress;
-    private ByteString content;
     public static final int K = 1000;
     private String url;
     private String file;
@@ -85,17 +84,6 @@ public class PageView {
         InterlinksLookup.init(progress);
         ImagesLookup.init(progress);
         LabelsLookup.init(progress);
-    }
-
-    public PageView readContent() {
-        if (content == null) {
-            content = ByteFiles.readAll(file, progress);
-        }
-        return this;
-    }
-
-    public void discardContent() {
-        content = null;
     }
 
     public PageView setProgress(Progress progress) {
@@ -153,17 +141,6 @@ public class PageView {
             return matcher.group(1);
         }
         return "--------";
-    }
-
-    public static void main(String[] args) throws IOException {
-        Progress progress = Progress.toConsole(System.out);
-        PageView.initLookups(progress);
-        new PageView()
-                .setFile("pageviews-20170418-120000.gz")
-                .setProgress(progress)
-                .readContent()
-                .writeTopToJson(K);
-
     }
 
     public PageView writeTopToJson(int k) throws IOException {
