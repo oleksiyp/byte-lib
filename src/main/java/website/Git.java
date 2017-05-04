@@ -1,5 +1,8 @@
 package website;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOError;
@@ -11,6 +14,8 @@ import java.util.Arrays;
 import static java.util.stream.Collectors.joining;
 
 public class Git implements Closeable {
+    private static final Logger LOG = LoggerFactory.getLogger(Git.class);
+
     private final String basePath;
     private boolean deleteAllOnClose;
 
@@ -95,7 +100,12 @@ public class Git implements Closeable {
                         .redirectError(err.toFile())
                         .start();
 
-                System.out.println(Arrays.stream(command).collect(joining(" ")));
+                if (LOG.isInfoEnabled()) {
+                    LOG.info(Arrays.stream(command).collect(joining(" ")));
+                }
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(Files.readAllLines(err).stream().collect(joining("\n")));
+                }
                 Files.copy(err, System.out);
 
                 int exitCode = process.waitFor();

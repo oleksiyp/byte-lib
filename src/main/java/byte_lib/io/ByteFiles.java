@@ -1,6 +1,5 @@
 package byte_lib.io;
 
-import byte_lib.Progress;
 import byte_lib.hashed.ByteStringMap;
 import byte_lib.string.ByteString;
 import byte_lib.string.buf.ByteBuf;
@@ -16,65 +15,49 @@ import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import static byte_lib.Progress.voidIfNull;
 import static byte_lib.string.ByteString.NEW_LINE;
 import static java.lang.String.format;
 
 public class ByteFiles {
     public static ByteString readAll(String path) {
-        return readAll(new File(path), null);
+        return readAll(new File(path));
     }
 
-    public static ByteString readAll(String path, Progress progress) {
-        return readAll(new File(path), progress);
-    }
-
-    public static ByteString readAll(File file, Progress progress) {
-        String name = file.getName();
-        progress = voidIfNull(progress);
-
+    public static ByteString readAll(File file) {
         long nBytes;
-        progress.message(format("Reading '%s'", name));
         try (ByteStringInputStream in = inputStream(file)) {
             nBytes = in.countBytes();
         } catch (IOException ex) {
             throw new IOError(ex);
         }
 
-        progress.message(format("%s to read", Util.sizeToString(nBytes)));
         try (ByteStringInputStream in = inputStream(file)) {
-            ByteBuf buf = in.readAll(nBytes, progress);
+            ByteBuf buf = in.readAll(nBytes);
             return ByteString.bb(buf);
         } catch (IOException ex) {
             throw new IOError(ex);
         }
     }
 
-    public static void readAllLines(File file, Progress progress, Consumer<ByteString> it) {
-        ByteString content = readAll(file, progress);
-        progress.reset(content.howMuch(NEW_LINE));
-        content.iterate(NEW_LINE, (str) -> {
-            progress.progress(1);
-            it.accept(str);
-        });
+    public static void readAllLines(File file, Consumer<ByteString> it) {
+        ByteString content = readAll(file);
+        content.iterate(NEW_LINE, it::accept);
     }
 
-    public static void writeAll(File file, ByteString str, Progress progress) {
-        try (OutputStream out = printStream(file, progress)) {
+    public static void writeAll(File file, ByteString str) {
+        try (OutputStream out = printStream(file)) {
             str.writeTo(out);
         } catch (IOException e) {
             throw new IOError(e);
         }
     }
 
-    public static PrintStream printStream(File outFile, Progress progress) {
-        return printStream(outFile.getPath(), progress);
+    public static PrintStream printStream(File outFile) {
+        return printStream(outFile.getPath());
     }
 
-    public static PrintStream printStream(String outFile, Progress progress) {
+    public static PrintStream printStream(String outFile) {
         try {
-            progress = voidIfNull(progress);
-            progress.message("Writing '" + outFile + "'");
             OutputStream out = new FileOutputStream(outFile);
             if (outFile.endsWith(".snappy")) {
                 out = new SnappyFramedOutputStream(out);
@@ -106,7 +89,7 @@ public class ByteFiles {
     }
 
     public static void writeMap(File file, ByteStringMap<ByteString> map) {
-        try (PrintStream out = printStream(file, null)) {
+        try (PrintStream out = printStream(file)) {
             map.forEach((lang, obj) -> {
                 lang.writeTo(out);
                 out.print(' ');
@@ -117,7 +100,7 @@ public class ByteFiles {
     }
 
     public static void writeCollection(File file, Collection<? extends ByteString> col) {
-        try (PrintStream out = printStream(file, null)) {
+        try (PrintStream out = printStream(file)) {
             col.forEach((str) -> {
                 str.writeTo(out);
                 out.println();
@@ -125,32 +108,26 @@ public class ByteFiles {
         }
     }
 
-    public static void loadCollection(File file, Collection<? super ByteString> col, Progress progress) {
-        readAll(file, progress)
+    public static void loadCollection(File file, Collection<? super ByteString> col) {
+        readAll(file)
                 .iterate(NEW_LINE, col::add);
     }
 
-    public static ByteStringMap<ByteString> loadMap(File file,
-                                                    Progress progress) {
+    public static ByteStringMap<ByteString> loadMap(File file) {
          return loadMap(file,
                  ByteString::firstField,
-                 ByteString::secondField,
-                 progress);
+                 ByteString::secondField
+         );
     }
 
     public static <T> ByteStringMap<T> loadMap(File file,
                                                Function<ByteString, ByteString> key,
-                                               Function<ByteString, T> value,
-                                               Progress progress) {
-        ByteString content = readAll(file, progress);
+                                               Function<ByteString, T> value) {
+        ByteString content = readAll(file);
         int total = content.howMuch(NEW_LINE);
         ByteStringMap<T> map = new ByteStringMap<>(total);
-        voidIfNull(progress).message("Building ByteStringMap for '" + file.getName() + "' " + total);
-        voidIfNull(progress).reset(total);
-        content.iterate(NEW_LINE, (str) -> {
-            voidIfNull(progress).progress(1);
-            map.put(key.apply(str), value.apply(str));
-        });
+        content.iterate(NEW_LINE, (str) ->
+                map.put(key.apply(str), value.apply(str)));
         return map;
     }
 

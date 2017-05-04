@@ -1,88 +1,70 @@
 package wikipageviews;
 
-import byte_lib.Progress;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.okhttp.OkHttpClient;
+import dbpedia.DbpediaLookups;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static byte_lib.io.ByteFiles.printStream;
-import static download.WikimediaDataSet.fromMarch2015;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class PageViewFetcher {
+    private static final Logger LOG = LoggerFactory.getLogger(PageViewFetcher.class);
+    public static final Pattern DAILY_TOP_JSON_PATTERN = Pattern.compile("\\d{6}.json");
 
-    public static final int K = 100;
     private final OkHttpClient downloadClient;
-    private Progress progress;
-    private int topK;
+    private final DbpediaLookups lookups;
+    private final int topK;
+    private final String hourlyJsonDir;
+    private final String dailyJsonDir;
+    private final String limitsJsonFile;
 
-    public PageViewFetcher(OkHttpClient downloadClient, Progress progress, int topK) {
-        this.downloadClient = downloadClient;
-        this.progress = progress;
+    public PageViewFetcher(int topK,
+                           String hourlyJsonDir,
+                           String dailyJsonDir,
+                           DbpediaLookups lookups,
+                           OkHttpClient downloadClient,
+                           String limitsJsonFile) {
         this.topK = topK;
-    }
-
-    public static void main(String[] args) throws InterruptedException {
-        Progress progress = Progress.toConsole(System.out);
-
-        PageView.initLookups(progress);
-
-        OkHttpClient downloadClient = new OkHttpClient();
-        List<PageView> pageViews = fromMarch2015().getPageViews();
-
-        PageViewFetcher fetcher = new PageViewFetcher(downloadClient, progress, K);
-
-        Map<String, List<PageView>> pageViewsPerDay =
-                pageViews
-                        .stream()
-                        .collect(Collectors.groupingBy(PageView::getDay));
-
-        List<String> days = pageViewsPerDay.keySet()
-                .stream()
-                .sorted(Comparator.reverseOrder())
-                .collect(toList());
-
-        for (String day : days) {
-            try {
-                fetcher.parseDay(pageViewsPerDay.get(day), "daily/" + day + ".json");
-            } catch (IOException e) {
-                // skip
-            }
-        }
+        this.hourlyJsonDir = hourlyJsonDir;
+        this.lookups = lookups;
+        this.downloadClient = downloadClient;
+        this.dailyJsonDir = dailyJsonDir;
+        this.limitsJsonFile = limitsJsonFile;
     }
 
     private void parseFile(PageView pageView) {
         try {
-            pageView.setProgress(progress)
+            pageView.setLookups(lookups)
+                    .setJsonOutDir(hourlyJsonDir)
                     .download(downloadClient)
-                    .writeTopToJson(topK);
+                    .writeHourlyTopToJson(topK);
         } catch (IOException err) {
             throw new IOError(err);
         }
     }
 
-    private void parseDay(List<PageView> pageViews, String fileName) throws IOException {
+    public void parseDay(String day, List<PageView> pageViews) throws IOException {
         pageViews.forEach(this::parseFile);
 
-        aggregateDayTop(pageViews, fileName);
+        aggregateDayTop(pageViews, day);
     }
 
-    private void aggregateDayTop(List<PageView> grouped, String fileName) throws IOException {
-        File file = new File(fileName);
-        if (file.isFile()) {
-            return;
-        }
-        file.getParentFile().mkdirs();
+    private void aggregateDayTop(List<PageView> grouped, String day) throws IOException {
         List<PageViewRecord> topPerDay = grouped.stream()
                 .map(PageView::getTopRecords)
                 .flatMap(Collection::stream)
@@ -96,11 +78,33 @@ public class PageViewFetcher {
                 .limit(topK)
                 .collect(toList());
 
-        try (PrintStream out = printStream(fileName, progress)) {
-            new ObjectMapper().writeValue(out, topPerDay);
-        } catch (IOException ex) {
-            throw new IOError(ex);
-        }
+        String fileName = dailyJsonDir + "/" + day + ".json";
+        LOG.info("Writing top hourly records {}", fileName);
+        new ObjectMapper().writeValue(new File(fileName), topPerDay);
     }
 
+    public void updateLimits() {
+        List<String> days =
+                Stream.of(ofNullable(new File(dailyJsonDir).listFiles()).orElse(new File[0]))
+                        .filter(file -> DAILY_TOP_JSON_PATTERN.matcher(file.getName()).matches())
+                        .map(File::getName)
+                        .map(str -> str.substring(0, 6))
+                        .collect(toList());
+
+        Optional<String> min = days.stream().min(Comparator.naturalOrder());
+        Optional<String> max = days.stream().max(Comparator.naturalOrder());
+
+        if (min.isPresent() && max.isPresent()) {
+            String fileName = limitsJsonFile;
+            DayLimits dayLimits = new DayLimits();
+            dayLimits.setMin(min.get());
+            dayLimits.setMax(max.get());
+            LOG.info("Updating {}", dayLimits);
+            try {
+                new ObjectMapper().writeValue(new File(fileName), dayLimits);
+            } catch (IOException e) {
+                throw new IOError(e);
+            }
+        }
+    }
 }

@@ -1,6 +1,5 @@
 package byte_lib.io;
 
-import byte_lib.Progress;
 import byte_lib.string.buf.ByteBuf;
 import byte_lib.string.ByteString;
 
@@ -149,14 +148,10 @@ public class ByteStringInputStream extends InputStream {
         }
     }
 
-    public ByteBuf readAll(long sz, Progress progress) throws IOException {
-        progress = Progress.voidIfNull(progress);
-
+    public ByteBuf readAll(long sz) throws IOException {
         ByteBuf result = ByteBuf.allocate(sz);
-        progress.reset(sz);
         while (!eof) {
             readMore();
-            progress.progress(bufSz);
             result.put(buf, 0, bufSz);
             bufSz = 0;
         }

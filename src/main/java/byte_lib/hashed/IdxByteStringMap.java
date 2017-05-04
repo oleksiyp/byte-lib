@@ -2,12 +2,15 @@ package byte_lib.hashed;
 
 import byte_lib.string.ByteString;
 import byte_lib.hashed.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static byte_lib.string.ByteString.encodeIdx;
 import static byte_lib.string.ByteString.idxLen;
 import static byte_lib.string.ByteString.idxStart;
 
 public class IdxByteStringMap {
+    private final static Logger LOG = LoggerFactory.getLogger(IdxByteStringMap.class);
     private final ByteStringHash hasher;
 
     private long []table;
@@ -48,8 +51,8 @@ public class IdxByteStringMap {
         bits = Util.nBits(capacity);
         if (bits < 3) bits = 3;
         table = new long[1 << bits];
+        LOG.info("Rehash {} {}", bucketsFilled, table.length);
         bucketsFilled = 0;
-        System.out.println("Rehash " + bucketsFilled + " " + table.length);
     }
     
     public ByteString get(Object key) {

@@ -2,7 +2,8 @@ package dbpedia;
 
 import byte_lib.io.ByteFiles;
 import byte_lib.string.ByteString;
-import byte_lib.Progress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.List;
@@ -15,11 +16,10 @@ import static byte_lib.string.ByteString.NEW_LINE;
 import static byte_lib.string.ByteString.bs;
 
 public class DbpediaFile {
+    private final static Logger LOG = LoggerFactory.getLogger(DbpediaFile.class);
     public static final ByteString COMMENT_START = bs("#");
 
     private File file;
-
-    private Progress progress = Progress.VOID;
 
     private int linesCount;
     private int fileId;
@@ -30,19 +30,9 @@ public class DbpediaFile {
         this.file = file;
     }
 
-    public DbpediaFile setProgress(Progress progress) {
-        this.progress = progress;
-        return this;
-    }
-
-    public Progress getProgress() {
-        return progress;
-    }
-
     public DbpediaFile countLines() {
         ByteString allFile = readAll();
         setLinesCount(allFile.howMuch(NEW_LINE));
-        progress.message(getLinesCount() + " records in '" + file.getName() + "'");
         return this;
     }
 
@@ -52,15 +42,9 @@ public class DbpediaFile {
 
     public void readRecords(Consumer<DbpediaTuple> recordConsumer) {
         DbpediaTupleParser parser = new DbpediaTupleParser();
-        if (getLinesCount() != 0) {
-            progress.reset(getLinesCount());
-        }
 
-        progress.message("Parsing '" + file.getName() + "'");
+        LOG.info("Parsing '" + file.getName() + "'");
         readAll().iterate(NEW_LINE, line  -> {
-            if (getLinesCount() != 0) {
-                progress.progress(1);
-            }
             if (isCommentLine(line)) {
                 return;
             }
@@ -70,7 +54,7 @@ public class DbpediaFile {
             if (record == null) {
                 if (parser.getError() != null) {
                     String error = parser.getError();
-                    progress.message(error);
+                    LOG.info(error);
                 }
                 return;
             }
@@ -91,7 +75,7 @@ public class DbpediaFile {
         if (content != null) {
             return content;
         }
-        return content = ByteFiles.readAll(file, progress);
+        return content = ByteFiles.readAll(file);
     }
 
     public File getFile() {
@@ -115,12 +99,11 @@ public class DbpediaFile {
         return filesCount;
     }
 
-    public static List<DbpediaFile> dirFiles(File dir, Progress progress) {
+    public static List<DbpediaFile> dirFiles(File dir) {
         List<DbpediaFile> files = Stream.of(
                 Optional.ofNullable(dir.listFiles()).orElse(new File[0]))
                 .filter(File::isFile)
                 .map(DbpediaFile::new)
-                .peek((f) -> f.setProgress(Progress.voidIfNull(progress)))
                 .collect(Collectors.toList());
 
         for (int i = 0; i < files.size(); i++) {
@@ -132,7 +115,7 @@ public class DbpediaFile {
     }
 
     public DbpediaFile reportNFile() {
-        progress.message("File " + (fileId + 1) + " of " + filesCount + ": " + file.getName());
+        LOG.info("File " + (fileId + 1) + " of " + filesCount + ": " + file.getName());
         return this;
     }
 
@@ -145,9 +128,9 @@ public class DbpediaFile {
         name += ".snappy";
         File snappyFile = new File(file.getParent(), name);
         if (!snappyFile.isFile()) {
-            progress.message("Recoding file to snappy");
+            LOG.info("Recoding file to snappy");
             readAll();
-            ByteFiles.writeAll(snappyFile, content, progress);
+            ByteFiles.writeAll(snappyFile, content);
         }
         file = snappyFile;
         return this;

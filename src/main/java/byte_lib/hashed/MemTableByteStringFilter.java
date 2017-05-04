@@ -2,8 +2,12 @@ package byte_lib.hashed;
 
 import byte_lib.string.ByteString;
 import byte_lib.hashed.Util;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class MemTableByteStringFilter implements ByteStringFilter {
+    private static final Logger LOG = LoggerFactory.getLogger(MemTableByteStringFilter.class);
+
     private final ByteStringHash hasher;
     private long []table;
     private int bucketsFilled;
@@ -25,7 +29,7 @@ class MemTableByteStringFilter implements ByteStringFilter {
         if (bits < 3) bits = 3;
         table = new long[1 << bits];
         bucketsFilled = 0;
-        System.out.println("Rehash " + bucketsFilled + " " + table.length);
+        LOG.info("Rehash {} {}", bucketsFilled, table.length);
     }
 
     @Override

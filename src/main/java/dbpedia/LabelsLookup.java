@@ -1,11 +1,13 @@
 package dbpedia;
 
-import byte_lib.*;
 import byte_lib.hashed.IdxByteStringMap;
 import byte_lib.hashed.IdxMapper;
 import byte_lib.string.ByteString;
 import byte_lib.string.ByteStringBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
@@ -16,41 +18,43 @@ import static byte_lib.string.ByteString.NEW_LINE;
 import static byte_lib.string.ByteString.bs;
 
 public class LabelsLookup {
+    private static final Logger LOG = LoggerFactory.getLogger(LabelsLookup.class);
     public static final File IN_DIR = new File("data/labels");
     public static final File LABELS_TXT = new File("parsed/labels.txt.snappy");
 
     private static final ByteString RDF_SCHEMA_LABEL = bs("http://www.w3.org/2000/01/rdf-schema#label");
 
-    public static LabelsLookup LABELS;
+    private final File labelsFile;
+    private final File labelsData;
 
     private IdxByteStringMap labelsMap;
 
-    public static LabelsLookup init(Progress progress) {
-        if (LABELS == null) {
-            LABELS = new LabelsLookup();
-            LABELS.init0(progress);
-        }
-        return LABELS;
+    public LabelsLookup(File labelsData, File labelsFile) {
+        this.labelsFile = labelsFile;
+        this.labelsData = labelsData;
     }
 
-    private void init0(Progress progress) {
-        if (!LABELS_TXT.isFile()) {
-            parseData(progress);
+    @PostConstruct
+    public void init() {
+        if (!labelsFile.isFile()) {
+            LOG.info("Parsing {} data", labelsData);
+            parseData();
         }
 
-        labelsMap = new IdxByteStringMap(readAll(LABELS_TXT, progress),
+        LOG.info("Loading labels info");
+        labelsMap = new IdxByteStringMap(readAll(labelsFile),
                 NEW_LINE,
                 IdxMapper::firstTwoFields,
                 IdxMapper::thirdField);
     }
 
 
-    private void parseData(Progress progress) {
+    private void parseData() {
         List<DbpediaFile> files = DbpediaFile.dirFiles(
-                IN_DIR,
-                progress);
+                labelsData
+        );
 
-        try (PrintStream out = printStream(LABELS_TXT, progress)) {
+        try (PrintStream out = printStream(labelsFile)) {
             files.forEach(file ->
                     file.reportNFile()
                             .recodeSnappy()
@@ -122,9 +126,5 @@ public class LabelsLookup {
                         .append((byte) ' ')
                         .append(resource)
                         .build());
-    }
-
-    public static void main(String[] args) {
-        LabelsLookup.init(Progress.toConsole(System.out));
     }
 }

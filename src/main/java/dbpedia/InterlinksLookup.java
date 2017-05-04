@@ -3,8 +3,10 @@ package dbpedia;
 import byte_lib.io.ByteFiles;
 import byte_lib.string.ByteString;
 import byte_lib.hashed.ByteStringMap;
-import byte_lib.Progress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.util.*;
 
@@ -13,11 +15,7 @@ import static byte_lib.io.ByteFiles.readAll;
 import static byte_lib.string.ByteString.bs;
 
 public class InterlinksLookup {
-    public static final File IN_DATA = new File("data/interlinks/interlanguage_links_en.tql.bz2");
-
-    public static final File MAIN_PAGE_TXT = new File("parsed/main_page.txt");
-    public static final File SPECIAL_TXT = new File("parsed/special_page.txt");
-    public static final File TEMPLATE_TXT = new File("parsed/template_page.txt");
+    private static final Logger LOG = LoggerFactory.getLogger(LabelsLookup.class);
 
     public static final ByteString MAIN_PAGE_RESOURCE = bs("http://dbpedia.org/resource/Main_Page");
     public static final ByteString OWL_SAME_AS = bs("http://www.w3.org/2002/07/owl#sameAs");
@@ -28,50 +26,48 @@ public class InterlinksLookup {
     public static final ByteString TEMPLATE_PREFIX = bs("http://dbpedia.org/resource/Template:");
     public static final ByteString SPECIAL_PREFIX = bs("http://dbpedia.org/resource/Special:");
     public static final ByteString COLON = bs(":");
+    private final File mainPagesFile;
+    private final File templatePagesFile;
+    private final File specialPagesFile;
+    private final File interlinksData;
 
     private ByteStringMap<ByteString> mainPages;
     private Set<ByteString> specialPages;
     private Set<ByteString> templatePages;
 
-    public static InterlinksLookup INTERLINKS;
-
-    public static InterlinksLookup init(Progress progress) {
-        if (INTERLINKS == null) {
-            INTERLINKS = new InterlinksLookup();
-            INTERLINKS.init0(progress);
-        }
-
-        return INTERLINKS;
-    }
-
-    public static InterlinksLookup init() {
-        return init(null);
-    }
-
-    private void init0(Progress progress) {
-        if (!load(progress)) {
-            parseData(progress);
-            save(progress);
+    @PostConstruct
+    public void init() {
+        if (!load()) {
+            parseData();
+            save();
         }
     }
 
-    InterlinksLookup() {
+    public InterlinksLookup(File interlinksData, File mainPagesFile, File templatePagesFile, File specialPagesFile) {
         mainPages = new ByteStringMap<>();
         specialPages = new HashSet<>();
         templatePages = new HashSet<>();
+        this.mainPagesFile = mainPagesFile;
+        this.templatePagesFile = templatePagesFile;
+        this.specialPagesFile = specialPagesFile;
+        this.interlinksData = interlinksData;
     }
 
-    private boolean load(Progress progress) {
-        if (!MAIN_PAGE_TXT.isFile() ||
-                !TEMPLATE_TXT.isFile() ||
-                !SPECIAL_TXT.isFile()) {
+    private boolean load() {
+        if (!mainPagesFile.isFile() ||
+                !templatePagesFile.isFile() ||
+                !specialPagesFile.isFile()) {
             return false;
         }
 
+        LOG.info("Loading {}, {}, {}",
+                mainPagesFile,
+                specialPagesFile,
+                templatePagesFile);
         try {
-            mainPages = loadMap(MAIN_PAGE_TXT, progress);
-            ByteFiles.loadCollection(SPECIAL_TXT, specialPages, progress);
-            ByteFiles.loadCollection(TEMPLATE_TXT, templatePages, progress);
+            mainPages = loadMap(mainPagesFile);
+            ByteFiles.loadCollection(specialPagesFile, specialPages);
+            ByteFiles.loadCollection(templatePagesFile, templatePages);
         } catch (Exception ex) {
             return false;
         }
@@ -79,19 +75,19 @@ public class InterlinksLookup {
         return true;
     }
 
-    private void save(Progress progress) {
-        MAIN_PAGE_TXT.getParentFile().mkdirs();
-        SPECIAL_TXT.getParentFile().mkdirs();
-        TEMPLATE_TXT.getParentFile().mkdirs();
+    private void save() {
+        mainPagesFile.getParentFile().mkdirs();
+        specialPagesFile.getParentFile().mkdirs();
+        templatePagesFile.getParentFile().mkdirs();
 
-        ByteFiles.writeMap(MAIN_PAGE_TXT, mainPages);
-        ByteFiles.writeCollection(SPECIAL_TXT, specialPages);
-        ByteFiles.writeCollection(TEMPLATE_TXT, templatePages);
+        ByteFiles.writeMap(mainPagesFile, mainPages);
+        ByteFiles.writeCollection(specialPagesFile, specialPages);
+        ByteFiles.writeCollection(templatePagesFile, templatePages);
     }
 
-    private void parseData(Progress progress) {
-        new DbpediaFile(IN_DATA)
-                .setProgress(progress)
+    private void parseData() {
+        LOG.info("Parsing {} data", interlinksData);
+        new DbpediaFile(interlinksData)
                 .recodeSnappy()
                 .countLines()
                 .readRecords(this::parseInterlinkRecord);
@@ -115,9 +111,6 @@ public class InterlinksLookup {
             addPrefix(specialPages, record);
         } else if (record.getSubject().startsWith(TEMPLATE_PREFIX)) {
             addPrefix(templatePages, record);
-        } else if (record.getSubject().contains(COLON)) {
-            // TODO remove
-            System.out.println(record.getSubject().toString());
         }
     }
 

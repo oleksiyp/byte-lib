@@ -1,12 +1,14 @@
 package dbpedia;
 
-import byte_lib.*;
 import byte_lib.hashed.IdxByteStringMap;
 import byte_lib.hashed.IdxMapper;
 import byte_lib.io.ByteFiles;
 import byte_lib.string.ByteString;
 import byte_lib.string.ByteStringBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
@@ -18,55 +20,53 @@ import static byte_lib.string.ByteString.SEPARATOR;
 import static byte_lib.string.ByteString.bs;
 
 public class ImagesLookup {
-    public static final File IN_DATA = new File("data/images");
-
-    public static final File DEPICTION_TXT = new File("parsed/depiction.txt.snappy");
-    public static final File THUMBNAIL_TXT = new File("parsed/thumbnail.txt.snappy");
+    private static final Logger LOG = LoggerFactory.getLogger(ImagesLookup.class);
 
     public static final ByteString DBPEDIA_THUMBNAIL = bs("http://dbpedia.org/ontology/thumbnail");
     public static final ByteString FOAF_DEPICTION = bs("http://xmlns.com/foaf/0.1/depiction");
 
-    public static ImagesLookup IMAGES;
+    private final File imagesData;
+    private final File depictionFile;
+    private final File thumbnailFile;
 
     private IdxByteStringMap thumbnailMap;
     private IdxByteStringMap depictionMap;
 
-    public ImagesLookup() {
+    public ImagesLookup(File imagesData, File depictionFile, File thumbnailFile) {
+        this.imagesData = imagesData;
+        this.depictionFile = depictionFile;
+        this.thumbnailFile = thumbnailFile;
     }
 
 
-    public static ImagesLookup init(Progress progress) {
-        if (IMAGES == null) {
-            IMAGES = new ImagesLookup();
-            IMAGES.init0(progress);
+    @PostConstruct
+    public ImagesLookup init() {
+        if (!depictionFile.isFile()
+            || !thumbnailFile.isFile()) {
+            LOG.info("Parsing {} data", imagesData);
+            parseData();
         }
 
-        return IMAGES;
-
-    }
-
-    private void init0(Progress progress) {
-        if (!DEPICTION_TXT.isFile()
-            || !THUMBNAIL_TXT.isFile()) {
-            parseData(progress);
-        }
-
-        thumbnailMap = new IdxByteStringMap(readAll(THUMBNAIL_TXT, progress),
+        LOG.info("Loading thumbnail info");
+        thumbnailMap = new IdxByteStringMap(readAll(thumbnailFile),
                 NEW_LINE,
                 IdxMapper::firstTwoFields,
                 IdxMapper::thirdField);
 
-        depictionMap = new IdxByteStringMap(readAll(DEPICTION_TXT, progress),
+        LOG.info("Loading depiction info");
+        depictionMap = new IdxByteStringMap(readAll(depictionFile),
                 NEW_LINE,
                 IdxMapper::firstTwoFields,
                 IdxMapper::thirdField);
+
+        return this;
     }
 
-    private void parseData(Progress progress) {
-        List<DbpediaFile> files = DbpediaFile.dirFiles(IN_DATA, progress);
+    private void parseData() {
+        List<DbpediaFile> files = DbpediaFile.dirFiles(imagesData);
 
-        try (PrintStream thumbnail = ByteFiles.printStream(THUMBNAIL_TXT, progress);
-             PrintStream depiction = ByteFiles.printStream(DEPICTION_TXT, progress)) {
+        try (PrintStream thumbnail = ByteFiles.printStream(thumbnailFile);
+             PrintStream depiction = ByteFiles.printStream(depictionFile)) {
 
             Consumer<DbpediaTuple> parser = recordParser(thumbnail, depiction);
 

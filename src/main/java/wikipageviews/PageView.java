@@ -1,17 +1,15 @@
 package wikipageviews;
 
-import byte_lib.io.ByteFiles;
 import byte_lib.string.ByteString;
 import byte_lib.io.ByteStringInputStream;
-import byte_lib.Progress;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
-import dbpedia.ImagesLookup;
-import dbpedia.InterlinksLookup;
-import dbpedia.LabelsLookup;
+import dbpedia.DbpediaLookups;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOError;
@@ -26,24 +24,20 @@ import java.util.regex.Pattern;
 
 import static byte_lib.io.ByteFiles.inputStream;
 import static byte_lib.string.ByteString.bs;
-import static dbpedia.ImagesLookup.IMAGES;
-import static dbpedia.InterlinksLookup.INTERLINKS;
-import static dbpedia.LabelsLookup.LABELS;
 import static java.util.Comparator.comparingInt;
 
 public class PageView {
-    public static final ByteString COLON = bs(":");
-    private static final File OUT_FILE = new File("pageviews-20170418-120000.json");
-    public static final String OUT_DIR = "data-res/";
+    private final static Logger LOG = LoggerFactory.getLogger(PageView.class);
     public static final Pattern FILE_NAME_PATTERN = Pattern.compile("pageviews-(\\d+)-(\\d+).gz");
 
+
     private MainPageRate rate;
-    private Progress progress;
-    public static final int K = 1000;
     private String url;
     private String file;
+    private String jsonOutDir;
     private String jsonOut;
     private List<PageViewRecord> topRecords;
+    private DbpediaLookups lookups;
 
     public PageView() {
         rate = new MainPageRate();
@@ -80,37 +74,37 @@ public class PageView {
         Collections.reverse(topRecords);
     }
 
-    public static void initLookups(Progress progress) {
-        InterlinksLookup.init(progress);
-        ImagesLookup.init(progress);
-        LabelsLookup.init(progress);
+    public PageView setJsonOutDir(String jsonOutDir) {
+        this.jsonOutDir = jsonOutDir;
+        return this;
     }
 
-    public PageView setProgress(Progress progress) {
-        this.progress = progress;
+    public PageView setLookups(DbpediaLookups lookups) {
+        this.lookups = lookups;
         return this;
     }
 
     public ByteStringPageViewRecord parseRecord(ByteString pageview) {
         ByteString lang = pageview.firstField();
-        if (!INTERLINKS.hasLang(lang)) {
+        if (!lookups.getInterlinksLookup().hasLang(lang)) {
             return null;
         }
 
         ByteString resource = pageview.field(1);
         int statCounter = pageview.field(2).toInt();
-        if (INTERLINKS.isMainPage(lang, resource)) {
+        if (lookups.getInterlinksLookup().isMainPage(lang, resource)) {
             rate.add(statCounter);
             return null;
         }
 
-        if (INTERLINKS.isSpecial(resource) || INTERLINKS.isTemplate(resource)) {
+        if (lookups.getInterlinksLookup().isSpecial(resource)
+                || lookups.getInterlinksLookup().isTemplate(resource)) {
             return null;
         }
 
-        ByteString thumbnail = IMAGES.getThumbnial(pageview.firstTwoFields());
-        ByteString depiction = IMAGES.getDepiction(pageview.firstTwoFields());
-        ByteString label = LABELS.getLabel(pageview.firstTwoFields());
+        ByteString thumbnail = lookups.getImagesLookup().getThumbnial(pageview.firstTwoFields());
+        ByteString depiction = lookups.getImagesLookup().getDepiction(pageview.firstTwoFields());
+        ByteString label = lookups.getLabelsLookup().getLabel(pageview.firstTwoFields());
 
         if (thumbnail == null || depiction == null) {
             return null;
@@ -143,15 +137,17 @@ public class PageView {
         return "--------";
     }
 
-    public PageView writeTopToJson(int k) throws IOException {
+    public PageView writeHourlyTopToJson(int k) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         File out = new File(getJsonOut());
         if (out.isFile()) {
+            LOG.info("Reading top hourly records {}", out);
             topRecords = mapper.readValue(out, new TypeReference<List<PageViewRecord>>(){});
             return this;
         }
         parseRecords(k);
         out.getParentFile().mkdirs();
+        LOG.info("Writing top hourly records {}", out);
         mapper.writeValue(
                 out,
                 topRecords);
@@ -165,7 +161,6 @@ public class PageView {
     }
 
     public PageView download(OkHttpClient httpClient) {
-
         if (new File(file).isFile()) {
             Request request = new Request.Builder()
                     .head()
@@ -176,7 +171,7 @@ public class PageView {
                 Response response = httpClient.newCall(request).execute();
                 long contentLen = response.isSuccessful() ? response.body().contentLength() : -1;
                 if (fileLength == contentLen) {
-                    progress.message("Skipping download " + getFile());
+                    LOG.info("Skipping download " + getFile());
                     return this;
                 }
             } catch (IOException e) {
@@ -184,7 +179,7 @@ public class PageView {
             }
         }
 
-        progress.message("Downloading " + getFile());
+        LOG.info("Downloading {}", getFile());
         for (int i = 1; i <= 10; i++) {
             try {
                 Request request = new Request.Builder()
@@ -202,14 +197,14 @@ public class PageView {
                     throw new IOException(response.message());
                 }
             } catch (IOException e) {
-                System.out.println(e.getMessage());
+                LOG.info(e.getMessage());
                 try {
                     Files.deleteIfExists(Paths.get(file));
                 } catch (IOException e1) {
                     // skip
                 }
+                LOG.warn("Retrying " + i, e);
             }
-            System.out.println("Retrying " + i);
             try {
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
@@ -221,7 +216,7 @@ public class PageView {
 
     public String getJsonOut() {
         if (jsonOut == null && file != null) {
-            jsonOut = OUT_DIR +
+            jsonOut = jsonOutDir +
                     new File(file)
                             .getName()
                             .replace(".gz", ".json");
@@ -229,12 +224,12 @@ public class PageView {
         return jsonOut;
     }
 
-    public void setJsonOut(String jsonOut) {
-        this.jsonOut = jsonOut;
-    }
-
     public boolean hasTopRecords() {
         return topRecords != null;
+    }
+
+    public boolean hasNoJsonOut() {
+        return !new File(getJsonOut()).isFile();
     }
 
     public List<PageViewRecord> getTopRecords() {

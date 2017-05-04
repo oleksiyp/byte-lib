@@ -1,5 +1,7 @@
 package byte_lib.string.buf;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.misc.*;
 
 import java.lang.reflect.Field;
@@ -9,6 +11,8 @@ import java.nio.BufferUnderflowException;
 import static java.lang.String.format;
 
 public class BigByteBuf implements ByteBuf {
+    private static final Logger LOG = LoggerFactory.getLogger(BigByteBuf.class);
+
     public static final long COPY_SIZE = 1024L * 1024;
     public static final int SMALL_BUFFER_SIZE = 6;
     static Unsafe unsafe = getUnsafe();
@@ -24,7 +28,7 @@ public class BigByteBuf implements ByteBuf {
 
     public BigByteBuf(long size){
         base = allocate(size);
-        System.out.println("Allocated " + size);
+        LOG.info("Allocated {} big buffer", size);
         this.size = size;
         this.limit = size;
         cleaner = Cleaner.create(this, new Deallocator(base, size));
@@ -32,24 +36,8 @@ public class BigByteBuf implements ByteBuf {
     }
 
     private long allocate(long size) {
-        long base;
-        try {
-            base = unsafe.allocateMemory(size);
-        } catch (OutOfMemoryError x) {
-            doCleaning();
-            try {
-                base = unsafe.allocateMemory(size);
-            } catch (OutOfMemoryError x2) {
-                doCleaning();
-                try {
-                    Thread.sleep(1000L);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-                base = unsafe.allocateMemory(size);
-            }
-        }
-        return base;
+        doCleaning();
+        return unsafe.allocateMemory(size);
     }
 
     BigByteBuf(BigByteBuf buf) {
@@ -275,7 +263,7 @@ public class BigByteBuf implements ByteBuf {
         @Override
         public void run() {
             unsafe.freeMemory(base);
-            System.out.println("Deallocated " + size);
+            LOG.info("Deallocated {}", size);
         }
     }
 

@@ -1,13 +1,18 @@
 package byte_lib.hashed;
 
 import byte_lib.string.ByteString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 
 public class ByteStringMap<T> implements Map<ByteString, T> {
+    private static final Logger LOG = LoggerFactory.getLogger(ByteStringMap.class);
+
     private HashEntry<T> []table;
     private int bucketsFilled;
     private int bucketsRemoved;
@@ -27,9 +32,9 @@ public class ByteStringMap<T> implements Map<ByteString, T> {
         bits = Util.nBits(capacity);
         if (bits < 3) bits = 3;
         table = new HashEntry[1 << bits];
+        LOG.debug("Rehash {} {} {}", bucketsFilled, bucketsRemoved, table.length);
         bucketsFilled = 0;
         bucketsRemoved = 0;
-        System.out.println("Rehash " + bucketsFilled + " " + table.length);
     }
 
     @Override

@@ -1,14 +1,14 @@
 package download;
 
-import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import wikipageviews.PageView;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -23,31 +23,28 @@ import static java.util.Collections.reverseOrder;
 import static java.util.stream.Collectors.toList;
 
 public class WikimediaDataSet {
-    public static final String START_URL = "https://dumps.wikimedia.org/other/pageviews/";
-
-    public static final String BASE_DIR = "data/dump.wikimedia.org";
-
-    private final OkHttpClient client;
-    private final String downloadBaseDir;
-    private String startUrl;
-    private List<PageView> pageViews;
+    private static final Logger LOG = LoggerFactory.getLogger(WikimediaDataSet.class);
 
     public static final Pattern PAGE_VIEW_PATTERN = Pattern.compile("\\d+/\\d+-\\d+/pageviews-\\d+-\\d+\\.gz");
 
-    public WikimediaDataSet(String startUrl, File cacheFile, String downloadBaseDir) {
+    private final OkHttpClient client;
+    private final String downloadBaseDir;
+    private final String startUrl;
+    private List<PageView> pageViews;
+    private final ForkJoinPool pool;
+
+    public WikimediaDataSet(String startUrl,
+                            OkHttpClient indexHtmlClient,
+                            String downloadBaseDir,
+                            ForkJoinPool pool) {
         this.startUrl = startUrl;
-
-        int cacheSize = 200 * 1024 * 1024; // 10 MiB
-        Cache cache = new Cache(cacheFile, cacheSize);
-
-        client = new OkHttpClient();
-        client.setCache(cache);
-
         this.downloadBaseDir = downloadBaseDir;
+        this.client = indexHtmlClient;
+        this.pool = pool;
     }
 
-    public WikimediaDataSet init() {
-        ForkJoinPool pool = new ForkJoinPool(4);
+    public WikimediaDataSet fetchPageviews() {
+        LOG.info("Fetching indexes from {}", startUrl);
         Set<String> allUrls = pool.invoke(new DownloadIndexHtmlTask(client, startUrl));
 
         pageViews = allUrls.stream()
@@ -58,7 +55,7 @@ public class WikimediaDataSet {
                         .setUrl(url)
                         .setFile(downloadBaseDir + relativeUrl(url)))
                 .collect(toList());
-
+        LOG.info("Fetched {} pageviews", pageViews.size());
         return this;
     }
 
@@ -74,18 +71,6 @@ public class WikimediaDataSet {
 
     public List<PageView> getPageViews() {
         return pageViews;
-    }
-
-    public static WikimediaDataSet fromMarch2015() {
-        return fromMarch2015(BASE_DIR);
-    }
-
-    public static WikimediaDataSet fromMarch2015(String baseDir) {
-        return new WikimediaDataSet(
-                START_URL,
-                new File(baseDir + "/cache"),
-                baseDir + "/download/")
-                .init();
     }
 
     private static class DownloadIndexHtmlTask extends RecursiveTask<Set<String>> {
