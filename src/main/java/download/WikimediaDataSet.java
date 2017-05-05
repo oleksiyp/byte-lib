@@ -53,7 +53,7 @@ public class WikimediaDataSet {
                 .sorted(reverseOrder())
                 .map((url) -> new PageView()
                         .setUrl(url)
-                        .setFile(downloadBaseDir + relativeUrl(url)))
+                        .setFile(downloadBaseDir + "/" + relativeUrl(url)))
                 .collect(toList());
         LOG.info("Fetched {} pageviews", pageViews.size());
         return this;

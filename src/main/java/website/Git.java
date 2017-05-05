@@ -94,10 +94,10 @@ public class Git implements Closeable {
         try {
             Path err = Files.createTempFile("git-err", ".txt");
             try {
-                Process process = new ProcessBuilder(command)
-                        .directory(new File(basePath))
+                ProcessBuilder processBuilder = new ProcessBuilder(command)
                         .redirectOutput(err.toFile())
-                        .redirectError(err.toFile())
+                        .redirectError(err.toFile());
+                Process process = assignDirectory(processBuilder)
                         .start();
 
                 if (LOG.isInfoEnabled()) {
@@ -123,10 +123,18 @@ public class Git implements Closeable {
         }
     }
 
+    private ProcessBuilder assignDirectory(ProcessBuilder processBuilder) {
+        File baseDir = new File(basePath);
+        if (baseDir.isDirectory()) {
+            processBuilder.directory(baseDir);
+        }
+        return processBuilder;
+    }
+
     private int executeWithResult(String ...command) {
         try {
-            return new ProcessBuilder(command)
-                    .directory(new File(basePath))
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            return assignDirectory(processBuilder)
                     .start().waitFor();
         } catch (IOException e) {
             throw new IOError(e);

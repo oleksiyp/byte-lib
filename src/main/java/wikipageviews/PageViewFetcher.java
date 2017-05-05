@@ -95,13 +95,12 @@ public class PageViewFetcher {
         Optional<String> max = days.stream().max(Comparator.naturalOrder());
 
         if (min.isPresent() && max.isPresent()) {
-            String fileName = limitsJsonFile;
             DayLimits dayLimits = new DayLimits();
             dayLimits.setMin(min.get());
             dayLimits.setMax(max.get());
             LOG.info("Updating {}", dayLimits);
             try {
-                new ObjectMapper().writeValue(new File(fileName), dayLimits);
+                new ObjectMapper().writeValue(new File(limitsJsonFile), dayLimits);
             } catch (IOException e) {
                 throw new IOError(e);
             }
