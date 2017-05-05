@@ -24,7 +24,7 @@ import static java.util.stream.Collectors.toList;
 
 public class PageViewFetcher {
     private static final Logger LOG = LoggerFactory.getLogger(PageViewFetcher.class);
-    public static final Pattern DAILY_TOP_JSON_PATTERN = Pattern.compile("\\d{6}.json");
+    public static final Pattern DAILY_TOP_JSON_PATTERN = Pattern.compile("\\d{8}.json");
 
     private final OkHttpClient downloadClient;
     private final DbpediaLookups lookups;
@@ -50,7 +50,6 @@ public class PageViewFetcher {
     private void parseFile(PageView pageView) {
         try {
             pageView.setLookups(lookups)
-                    .setJsonOutDir(hourlyJsonDir)
                     .download(downloadClient)
                     .writeHourlyTopToJson(topK);
         } catch (IOException err) {
@@ -88,7 +87,7 @@ public class PageViewFetcher {
                 Stream.of(ofNullable(new File(dailyJsonDir).listFiles()).orElse(new File[0]))
                         .filter(file -> DAILY_TOP_JSON_PATTERN.matcher(file.getName()).matches())
                         .map(File::getName)
-                        .map(str -> str.substring(0, 6))
+                        .map(str -> str.substring(0, 8))
                         .collect(toList());
 
         Optional<String> min = days.stream().min(Comparator.naturalOrder());
@@ -105,5 +104,9 @@ public class PageViewFetcher {
                 throw new IOError(e);
             }
         }
+    }
+
+    public void assignJsonOutDir(List<PageView> pageViews) {
+        pageViews.forEach(pageView -> pageView.setJsonOutDir(hourlyJsonDir));
     }
 }

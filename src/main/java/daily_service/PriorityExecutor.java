@@ -57,7 +57,7 @@ public class PriorityExecutor {
                 } catch (VirtualMachineError err) {
                     throw err;
                 } catch (Throwable ex) {
-                    LOG.debug("Error running task {}", task, ex);
+                    LOG.error("Error running task {}", task, ex);
                 }
             }
         } catch (InterruptedException e) {

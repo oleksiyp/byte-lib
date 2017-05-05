@@ -41,7 +41,7 @@ public class DailyTopApp {
                                     new Git(props.getRepo()),
                                     new Git(new File(props.getCache())),
                                     props.getBranch(),
-                                    props.getDialyDir()))
+                                    props.getDailyDir()))
                             .collect(toList()));
         }
 
@@ -75,7 +75,11 @@ public class DailyTopApp {
 
         return new DailyTopService(dataSet,
                 fetcher,
-                (day) -> uploader.update(),
+                (day) -> {
+                    synchronized (uploader) {
+                        uploader.update();
+                    }
+                },
                 perDayExecutor);
     }
 

@@ -47,6 +47,8 @@ public class DailyTopService {
                 .fetchPageviews()
                 .getPageViews();
 
+        fetcher.assignJsonOutDir(fetchedPageViews);
+
         for (String day : daysHasMissingJsons(fetchedPageViews)) {
             List<PageView> pageViews = pageViewsForDay(fetchedPageViews, day);
             PageViewDailyFetchTask task = new PageViewDailyFetchTask(day, pageViews);

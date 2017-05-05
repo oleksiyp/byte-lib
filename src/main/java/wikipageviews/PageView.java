@@ -145,9 +145,10 @@ public class PageView {
             topRecords = mapper.readValue(out, new TypeReference<List<PageViewRecord>>(){});
             return this;
         }
+        LOG.info("Parsing {}", new File(file).getName());
         parseRecords(k);
         out.getParentFile().mkdirs();
-        LOG.info("Writing top hourly records {}", out);
+        LOG.info("Writing top hourly {}", out);
         mapper.writeValue(
                 out,
                 topRecords);
@@ -216,7 +217,10 @@ public class PageView {
 
     public String getJsonOut() {
         if (jsonOut == null && file != null) {
-            jsonOut = jsonOutDir +
+            if (jsonOutDir == null) {
+                throw new RuntimeException("set jsonOutDir for PageView first");
+            }
+            jsonOut = jsonOutDir + "/" +
                     new File(file)
                             .getName()
                             .replace(".gz", ".json");

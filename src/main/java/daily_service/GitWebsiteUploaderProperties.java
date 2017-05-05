@@ -4,7 +4,7 @@ public class GitWebsiteUploaderProperties {
     private String repo;
     private String cache;
     private String branch;
-    private String dialyDir;
+    private String dailyDir;
 
     public String getRepo() {
         return repo;
@@ -30,11 +30,11 @@ public class GitWebsiteUploaderProperties {
         this.branch = branch;
     }
 
-    public String getDialyDir() {
-        return dialyDir;
+    public String getDailyDir() {
+        return dailyDir;
     }
 
-    public void setDialyDir(String dialyDir) {
-        this.dialyDir = dialyDir;
+    public void setDailyDir(String dailyDir) {
+        this.dailyDir = dailyDir;
     }
 }
