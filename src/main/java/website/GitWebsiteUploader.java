@@ -8,16 +8,17 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
 
 public class GitWebsiteUploader implements WebsiteUploader {
-    public static final String DAILY_FILES = "daily";
     private File dailyFiles;
-    private Git mainRepo;
-    private Git cacheRepo;
-    private String branch;
+    private final Git mainRepo;
+    private final Git cacheRepo;
+    private final String branch;
+    private final String gitRepoDailyPath;
 
-    public GitWebsiteUploader(Git mainRepo, Git cacheRepo, String branch) {
+    public GitWebsiteUploader(Git mainRepo, Git cacheRepo, String branch, String gitRepoDailyPath) {
         this.mainRepo = mainRepo;
         this.cacheRepo = cacheRepo;
         this.branch = branch;
+        this.gitRepoDailyPath = gitRepoDailyPath;
     }
 
     @Override
@@ -53,7 +54,7 @@ public class GitWebsiteUploader implements WebsiteUploader {
         return Files.createTempDirectory(prefix).toFile();
     }
 
-    private static class CopyAndAddToGit extends SimpleFileVisitor<Path> {
+    private class CopyAndAddToGit extends SimpleFileVisitor<Path> {
         private final Git tempRepo;
         private final Path start;
 
@@ -64,7 +65,7 @@ public class GitWebsiteUploader implements WebsiteUploader {
 
         @Override
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-            Path inGitRepo = Paths.get(tempRepo.getBasePath(), DAILY_FILES)
+            Path inGitRepo = Paths.get(tempRepo.getBasePath(), gitRepoDailyPath)
                     .resolve(start.relativize(file));
 
             Files.createDirectories(inGitRepo.getParent());

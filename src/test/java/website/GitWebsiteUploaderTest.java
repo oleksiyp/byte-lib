@@ -29,7 +29,7 @@ public class GitWebsiteUploaderTest {
 
     @Test
     public void testUpload() throws Exception {
-        WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, null, null);
+        WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, null, null, "daily");
 
         Path path = createTempDirectory("git-website-uploader");
         write(path.resolve("file1.txt"), "value1\nline2\n".getBytes());
@@ -45,7 +45,7 @@ public class GitWebsiteUploaderTest {
             try (Git testRepo = mainRepo.clone(createTempDirectory(
                     "git-website-repo-test").toFile())) {
 
-                Path actualDailyFiles = Paths.get(testRepo.getBasePath(), GitWebsiteUploader.DAILY_FILES);
+                Path actualDailyFiles = Paths.get(testRepo.getBasePath(), "daily");
                 assertThat(readAllLines(
                         actualDailyFiles.resolve("file1.txt")))
                         .containsExactly("value1", "line2");
@@ -70,7 +70,7 @@ public class GitWebsiteUploaderTest {
     public void testUploadWithCache() throws Exception {
         try (Git cacheRepo = new Git(createTempDirectory("git-website-cache").toFile())
                 .withDeleteAllOnClose(true)) {
-            WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, cacheRepo, null);
+            WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, cacheRepo, null, "daily");
 
             Path path = createTempDirectory("git-website-uploader");
             write(path.resolve("file1.txt"), "value1\nline2\n".getBytes());
@@ -96,7 +96,7 @@ public class GitWebsiteUploaderTest {
 
                 try (Git testRepo = mainRepo.clone(createTempDirectory(
                         "git-website-repo-test").toFile())) {
-                    Path actualDailyFiles = Paths.get(testRepo.getBasePath(), GitWebsiteUploader.DAILY_FILES);
+                    Path actualDailyFiles = Paths.get(testRepo.getBasePath(), "daily");
                     assertThat(readAllLines(
                             actualDailyFiles.resolve("file1.txt")))
                             .containsExactly("value1", "line2");

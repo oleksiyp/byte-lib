@@ -4,6 +4,7 @@ public class GitWebsiteUploaderProperties {
     private String repo;
     private String cache;
     private String branch;
+    private String dialyDir;
 
     public String getRepo() {
         return repo;
@@ -27,5 +28,13 @@ public class GitWebsiteUploaderProperties {
 
     public void setBranch(String branch) {
         this.branch = branch;
+    }
+
+    public String getDialyDir() {
+        return dialyDir;
+    }
+
+    public void setDialyDir(String dialyDir) {
+        this.dialyDir = dialyDir;
     }
 }

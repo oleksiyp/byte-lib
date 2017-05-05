@@ -40,7 +40,8 @@ public class DailyTopApp {
                             .map(props -> new GitWebsiteUploader(
                                     new Git(props.getRepo()),
                                     new Git(new File(props.getCache())),
-                                    props.getBranch()))
+                                    props.getBranch(),
+                                    props.getDialyDir()))
                             .collect(toList()));
         }
 
