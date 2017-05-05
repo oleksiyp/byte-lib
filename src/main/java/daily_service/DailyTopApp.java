@@ -14,11 +14,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import website.Git;
 import website.GitWebsiteUploader;
+import website.ManyWebsiteUploader;
 import website.WebsiteUploader;
 import wikipageviews.PageViewFetcher;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+
+import static java.util.stream.Collectors.toList;
 
 @SpringBootApplication
 public class DailyTopApp {
@@ -27,9 +32,19 @@ public class DailyTopApp {
 
     @Bean
     public WebsiteUploader uploader() {
-        GitWebsiteUploader uploader = new GitWebsiteUploader(
-                new Git(properties.getGitRepo()),
-                new Git(properties.getCacheRepo()));
+        List<WebsiteUploader> uploaders = new ArrayList<>();
+        if (properties.getGit() != null) {
+            uploaders.addAll(
+                    properties.getGit()
+                            .stream()
+                            .map(props -> new GitWebsiteUploader(
+                                    new Git(props.getRepo()),
+                                    new Git(new File(props.getCache())),
+                                    props.getBranch()))
+                            .collect(toList()));
+        }
+
+        WebsiteUploader uploader = new ManyWebsiteUploader(uploaders);
 
         uploader.setPathToDaily(new File(properties.getDailyJsonDir()));
 

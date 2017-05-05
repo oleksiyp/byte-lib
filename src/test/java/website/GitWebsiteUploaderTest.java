@@ -18,7 +18,7 @@ public class GitWebsiteUploaderTest {
 
     @Before
     public void setUp() throws Exception {
-        mainRepo = new Git(createTempDirectory("git-website-uploader-repo"));
+        mainRepo = new Git(createTempDirectory("git-website-uploader-repo").toFile());
         mainRepo.init(true);
     }
 
@@ -29,7 +29,7 @@ public class GitWebsiteUploaderTest {
 
     @Test
     public void testUpload() throws Exception {
-        WebsiteUploader uploader = new GitWebsiteUploader(mainRepo);
+        WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, null, null);
 
         Path path = createTempDirectory("git-website-uploader");
         write(path.resolve("file1.txt"), "value1\nline2\n".getBytes());
@@ -43,7 +43,7 @@ public class GitWebsiteUploaderTest {
             uploader.update();
 
             try (Git testRepo = mainRepo.clone(createTempDirectory(
-                    "git-website-repo-test"))) {
+                    "git-website-repo-test").toFile())) {
 
                 Path actualDailyFiles = Paths.get(testRepo.getBasePath(), GitWebsiteUploader.DAILY_FILES);
                 assertThat(readAllLines(
@@ -68,9 +68,9 @@ public class GitWebsiteUploaderTest {
 
     @Test
     public void testUploadWithCache() throws Exception {
-        try (Git cacheRepo = new Git(createTempDirectory("git-website-cache"))
+        try (Git cacheRepo = new Git(createTempDirectory("git-website-cache").toFile())
                 .withDeleteAllOnClose(true)) {
-            WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, cacheRepo);
+            WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, cacheRepo, null);
 
             Path path = createTempDirectory("git-website-uploader");
             write(path.resolve("file1.txt"), "value1\nline2\n".getBytes());
@@ -95,7 +95,7 @@ public class GitWebsiteUploaderTest {
                 uploader.update();
 
                 try (Git testRepo = mainRepo.clone(createTempDirectory(
-                        "git-website-repo-test"))) {
+                        "git-website-repo-test").toFile())) {
                     Path actualDailyFiles = Paths.get(testRepo.getBasePath(), GitWebsiteUploader.DAILY_FILES);
                     assertThat(readAllLines(
                             actualDailyFiles.resolve("file1.txt")))

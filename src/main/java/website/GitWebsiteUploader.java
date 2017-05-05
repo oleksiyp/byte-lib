@@ -7,21 +7,17 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
 
-import static java.nio.file.Files.createTempDirectory;
-
 public class GitWebsiteUploader implements WebsiteUploader {
     public static final String DAILY_FILES = "daily";
     private File dailyFiles;
     private Git mainRepo;
     private Git cacheRepo;
+    private String branch;
 
-    public GitWebsiteUploader(Git mainRepo, Git cacheRepo) {
+    public GitWebsiteUploader(Git mainRepo, Git cacheRepo, String branch) {
         this.mainRepo = mainRepo;
         this.cacheRepo = cacheRepo;
-    }
-
-    public GitWebsiteUploader(Git mainRepo) {
-        this(mainRepo, null);
+        this.branch = branch;
     }
 
     @Override
@@ -35,13 +31,13 @@ public class GitWebsiteUploader implements WebsiteUploader {
             if (cacheRepo.exists()) {
                 cacheRepo.pull();
             } else {
-                mainRepo.clone(cacheRepo.getBasePath());
+                mainRepo.clone(cacheRepo.getBasePath(), branch);
             }
         }
 
         try (Git tempRepo = cacheRepo != null ?
                 cacheRepo :
-                mainRepo.clone(createTempDirectory("git-website-uploader-repo"))) {
+                mainRepo.clone(tempDir("git-website-uploader-repo"), branch)) {
             Path start = dailyFiles.toPath();
             Files.walkFileTree(start, new CopyAndAddToGit(tempRepo, start));
             if (tempRepo.checkHasChanges()) {
@@ -51,6 +47,10 @@ public class GitWebsiteUploader implements WebsiteUploader {
         } catch (IOException e) {
             throw new IOError(e);
         }
+    }
+
+    private File tempDir(String prefix) throws IOException {
+        return Files.createTempDirectory(prefix).toFile();
     }
 
     private static class CopyAndAddToGit extends SimpleFileVisitor<Path> {
@@ -71,7 +71,7 @@ public class GitWebsiteUploader implements WebsiteUploader {
 
             Files.copy(file, inGitRepo, StandardCopyOption.REPLACE_EXISTING);
 
-            tempRepo.add(inGitRepo);
+            tempRepo.add(inGitRepo.toFile());
 
             return super.visitFile(file, attrs);
         }

@@ -4,12 +4,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "daily_top_service")
 public class DailyTopServiceProperties {
-    private String gitRepo;
-    private String cacheRepo;
+    private List<GitWebsiteUploaderProperties> git;
     private String dumpsUrl;
     private File dumpsIndexHtmlCache;
     private String dumpsDownload;
@@ -29,20 +29,12 @@ public class DailyTopServiceProperties {
     private String limitsJsonFile;
     private int downloadParallelism;
 
-    public String getGitRepo() {
-        return gitRepo;
+    public List<GitWebsiteUploaderProperties> getGit() {
+        return git;
     }
 
-    public void setGitRepo(String gitRepo) {
-        this.gitRepo = gitRepo;
-    }
-
-    public String getCacheRepo() {
-        return cacheRepo;
-    }
-
-    public void setCacheRepo(String cacheRepo) {
-        this.cacheRepo = cacheRepo;
+    public void setGit(List<GitWebsiteUploaderProperties> git) {
+        this.git = git;
     }
 
     public String getDumpsUrl() {

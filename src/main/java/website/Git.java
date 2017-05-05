@@ -19,10 +19,6 @@ public class Git implements Closeable {
     private final String basePath;
     private boolean deleteAllOnClose;
 
-    public Git(Path basePath) {
-        this(basePath.toFile());
-    }
-
     public Git(File basePath) {
         this(basePath.getAbsolutePath());
     }
@@ -40,12 +36,12 @@ public class Git implements Closeable {
         return this;
     }
 
-    public Git clone(Path other) {
-        return clone(other.toFile());
-    }
-
     public Git clone(File other) {
         return clone(other.getAbsolutePath());
+    }
+
+    public Git clone(File other, String branch) {
+        return clone(other.getAbsolutePath(), branch);
     }
 
     public Git clone(String other) {
@@ -54,20 +50,26 @@ public class Git implements Closeable {
                 .withDeleteAllOnClose(true);
     }
 
+    public Git clone(String other, String branch) {
+        if (branch == null) {
+            return clone(other);
+        }
+        execute("git", "clone", "-b", branch, basePath, other);
+        return new Git(other)
+                .withDeleteAllOnClose(true);
+    }
+
     public String getBasePath() {
         return basePath;
     }
 
-    public Git add(Path file) {
-        return add(file.toFile());
-    }
-
-    private Git add(File file) {
+    public Git add(File file) {
         return add(file.getAbsolutePath());
     }
 
     private Git add(String file) {
-        execute("git", "add", Paths.get(basePath).relativize(Paths.get(file)).toString());
+        String relativePath = Paths.get(basePath).relativize(Paths.get(file)).toString();
+        execute("git", "add", relativePath);
         return this;
     }
 
