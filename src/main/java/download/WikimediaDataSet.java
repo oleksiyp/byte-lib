@@ -1,9 +1,6 @@
 package download;
 
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
-import com.squareup.okhttp.ResponseBody;
+import com.squareup.okhttp.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
@@ -17,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptySet;
@@ -57,6 +55,12 @@ public class WikimediaDataSet {
                         .setFile(downloadBaseDir + "/" + relativeUrl(url)))
                 .collect(toList());
         LOG.info("Fetched {} pageviews", pageViews.size());
+        Cache cache = client.getCache();
+        if (cache != null) {
+            LOG.info("Cache hits/requests = {}/{}",
+                    cache.getHitCount(),
+                    cache.getRequestCount());
+        }
         return this;
     }
 
@@ -140,6 +144,9 @@ public class WikimediaDataSet {
 
         private Response httpGet() throws IOException {
             Request url = new Request.Builder()
+                    .cacheControl(new CacheControl.Builder()
+                            .maxStale(30, TimeUnit.MINUTES)
+                            .build())
                     .url(this.url)
                     .build();
             return client.newCall(url).execute();

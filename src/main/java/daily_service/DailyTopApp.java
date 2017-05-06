@@ -99,7 +99,7 @@ public class DailyTopApp {
                 properties.getDumpsUrl(),
                 client,
                 properties.getDumpsDownload(),
-                new ForkJoinPool(4));
+                new ForkJoinPool(1));
     }
 
     @Bean
