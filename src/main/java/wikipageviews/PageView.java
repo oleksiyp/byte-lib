@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 import dbpedia.DbpediaLookups;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,10 +171,13 @@ public class PageView {
             try {
                 long fileLength = new File(file).length();
                 Response response = httpClient.newCall(request).execute();
-                long contentLen = response.isSuccessful() ? response.body().contentLength() : -1;
-                if (fileLength == contentLen) {
-                    LOG.info("Skipping download " + getFile());
-                    return this;
+                if (response.isSuccessful()) {
+                    try (ResponseBody body = response.body()) {
+                        if (fileLength == body.contentLength()) {
+                            LOG.info("Skipping download " + getFile());
+                            return this;
+                        }
+                    }
                 }
             } catch (IOException e) {
                 // skip
@@ -191,8 +195,10 @@ public class PageView {
                 if (response.isSuccessful()) {
                     Path out = Paths.get(file);
                     Files.createDirectories(out.getParent());
-                    Files.copy(response.body().byteStream(), out,
-                            StandardCopyOption.REPLACE_EXISTING);
+                    try (ResponseBody body = response.body()) {
+                        Files.copy(body.byteStream(), out,
+                                StandardCopyOption.REPLACE_EXISTING);
+                    }
                     break;
                 } else {
                     throw new IOException(response.message());

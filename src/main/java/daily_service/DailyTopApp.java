@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 @SpringBootApplication
@@ -51,7 +52,7 @@ public class DailyTopApp {
 
         return uploader;
     }
-    
+
     @Bean
     public PageViewFetcher fetcher(DbpediaLookups lookups) {
         OkHttpClient client = new OkHttpClient();
@@ -66,12 +67,13 @@ public class DailyTopApp {
     }
 
     @Bean
-    DailyTopService dailyTopService(WikimediaDataSet dataSet,
-                                    PageViewFetcher fetcher,
-                                    WebsiteUploader uploader) {
+    public DailyTopService dailyTopService(WikimediaDataSet dataSet,
+                                           PageViewFetcher fetcher,
+                                           WebsiteUploader uploader) {
         CustomizableThreadFactory threadFactory = new CustomizableThreadFactory("daily_top_service");
 
         PriorityExecutor perDayExecutor = new PriorityExecutor(properties.getDownloadParallelism(), threadFactory);
+
 
         return new DailyTopService(dataSet,
                 fetcher,
@@ -80,7 +82,8 @@ public class DailyTopApp {
                         uploader.update();
                     }
                 },
-                perDayExecutor);
+                perDayExecutor,
+                ofNullable(properties.getLimitLastDays()));
     }
 
     @Bean
@@ -122,7 +125,7 @@ public class DailyTopApp {
                 properties.getMainPagesFile(),
                 properties.getTemplatePagesFile(),
                 properties.getSpecialPagesFile()
-                );
+        );
     }
 
     @Bean
@@ -134,6 +137,7 @@ public class DailyTopApp {
                 labelsLookup,
                 interlinksLookup);
     }
+
 
     public static void main(String[] args) {
         SpringApplication.run(DailyTopApp.class, args);

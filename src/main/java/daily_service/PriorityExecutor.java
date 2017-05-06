@@ -3,14 +3,14 @@ package daily_service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.concurrent.ThreadFactory;
+import java.util.stream.Collectors;
 
 public class PriorityExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(PriorityExecutor.class);
     private final PriorityQueue<Runnable> queue;
+    private final Set<Runnable> locked;
     private final ThreadFactory threadFactory;
 
     public PriorityExecutor() {
@@ -19,16 +19,22 @@ public class PriorityExecutor {
 
     public PriorityExecutor(int nThreads,
                             ThreadFactory threadFactory) {
-        this.threadFactory = threadFactory;
-        this.queue = new PriorityQueue<>();
-        initThreads(nThreads);
+        this(nThreads, threadFactory, null);
     }
 
     public PriorityExecutor(int nThreads,
                             ThreadFactory threadFactory,
                             Comparator<Runnable> comparator) {
         this.threadFactory = threadFactory;
-        this.queue = new PriorityQueue<>(comparator);
+
+        this.queue = comparator != null
+                ? new PriorityQueue<>(comparator)
+                : new PriorityQueue<>();
+
+        this.locked = comparator != null
+                ? new TreeSet<>(comparator)
+                : new TreeSet<>();
+
         initThreads(nThreads);
     }
 
@@ -51,6 +57,7 @@ public class PriorityExecutor {
                         queue.wait();
                     }
                     task = queue.remove();
+                    locked.add(task);
                 }
                 try {
                     task.run();
@@ -58,6 +65,10 @@ public class PriorityExecutor {
                     throw err;
                 } catch (Throwable ex) {
                     LOG.error("Error running task {}", task, ex);
+                } finally {
+                    synchronized (queue) {
+                        locked.remove(task);
+                    }
                 }
             }
         } catch (InterruptedException e) {
@@ -67,6 +78,9 @@ public class PriorityExecutor {
 
     public void execute(Runnable object) {
         synchronized (queue) {
+            if (locked.contains(object)) {
+                return;
+            }
             queue.add(object);
             queue.notifyAll();
         }
@@ -74,7 +88,14 @@ public class PriorityExecutor {
 
     public void executeAll(Collection<? extends Runnable> objects) {
         synchronized (queue) {
-            queue.addAll(objects);
+            List<? extends Runnable> objectsFiltered = objects.stream()
+                    .filter(o -> !locked.contains(o))
+                    .collect(Collectors.toList());
+
+            if (objectsFiltered.isEmpty()) {
+                return;
+            }
+            queue.addAll(objectsFiltered);
             queue.notifyAll();
         }
     }

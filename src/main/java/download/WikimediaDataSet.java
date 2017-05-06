@@ -3,6 +3,7 @@ package download;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
@@ -126,8 +127,8 @@ public class WikimediaDataSet {
         }
 
         private void extractLinks(Response response, Set<String> list) {
-            try {
-                Document doc = Jsoup.parse(response.body().string(), url);
+            try (ResponseBody body = response.body()) {
+                Document doc = Jsoup.parse(body.string(), url);
                 doc.select("a").forEach((el) -> {
                     String url = el.attr("abs:href");
                     list.add(url);
@@ -138,11 +139,10 @@ public class WikimediaDataSet {
         }
 
         private Response httpGet() throws IOException {
-            Response response;Request url = new Request.Builder()
+            Request url = new Request.Builder()
                     .url(this.url)
                     .build();
-            response = client.newCall(url).execute();
-            return response;
+            return client.newCall(url).execute();
         }
     }
 

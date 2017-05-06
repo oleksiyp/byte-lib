@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @ConfigurationProperties(prefix = "daily_top_service")
@@ -28,6 +29,8 @@ public class DailyTopServiceProperties {
     private String dailyJsonDir;
     private String limitsJsonFile;
     private int downloadParallelism;
+    private Integer limitLastDays;
+    private String fetcherCron;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -179,5 +182,21 @@ public class DailyTopServiceProperties {
 
     public void setDownloadParallelism(int downloadParallelism) {
         this.downloadParallelism = downloadParallelism;
+    }
+
+    public Integer getLimitLastDays() {
+        return limitLastDays;
+    }
+
+    public void setLimitLastDays(Integer limitLastDays) {
+        this.limitLastDays = limitLastDays;
+    }
+
+    public String getFetcherCron() {
+        return fetcherCron;
+    }
+
+    public void setFetcherCron(String fetcherCron) {
+        this.fetcherCron = fetcherCron;
     }
 }
