@@ -144,9 +144,6 @@ public class WikimediaDataSet {
 
         private Response httpGet() throws IOException {
             Request url = new Request.Builder()
-                    .cacheControl(new CacheControl.Builder()
-                            .maxStale(30, TimeUnit.MINUTES)
-                            .build())
                     .url(this.url)
                     .build();
             return client.newCall(url).execute();
