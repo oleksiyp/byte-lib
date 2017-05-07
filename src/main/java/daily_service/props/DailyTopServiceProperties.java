@@ -1,11 +1,10 @@
-package daily_service;
+package daily_service.props;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 @ConfigurationProperties(prefix = "daily_top_service")

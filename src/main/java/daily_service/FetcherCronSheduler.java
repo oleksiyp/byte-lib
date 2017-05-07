@@ -1,5 +1,6 @@
 package daily_service;
 
+import daily_service.props.DailyTopServiceProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;

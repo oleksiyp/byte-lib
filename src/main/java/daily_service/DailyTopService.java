@@ -3,7 +3,7 @@ package daily_service;
 import download.WikimediaDataSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
+import util.PriorityExecutor;
 import wikipageviews.PageView;
 import wikipageviews.PageViewFetcher;
 

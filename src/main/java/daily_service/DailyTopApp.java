@@ -2,6 +2,7 @@ package daily_service;
 
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
+import daily_service.props.DailyTopServiceProperties;
 import dbpedia.DbpediaLookups;
 import dbpedia.ImagesLookup;
 import dbpedia.InterlinksLookup;
@@ -12,6 +13,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
+import util.PriorityExecutor;
 import website.Git;
 import website.GitWebsiteUploader;
 import website.ManyWebsiteUploader;

@@ -1,4 +1,4 @@
-package daily_service;
+package daily_service.props;
 
 public class GitWebsiteUploaderProperties {
     private String repo;
