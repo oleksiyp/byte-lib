@@ -5,6 +5,7 @@ public class GitWebsiteUploaderProperties {
     private String cache;
     private String branch;
     private String dailyDir;
+    private String commitMessage;
 
     public String getRepo() {
         return repo;
@@ -36,5 +37,13 @@ public class GitWebsiteUploaderProperties {
 
     public void setDailyDir(String dailyDir) {
         this.dailyDir = dailyDir;
+    }
+
+    public void setCommitMessage(String commitMessage) {
+        this.commitMessage = commitMessage;
+    }
+
+    public String getCommitMessage() {
+        return commitMessage;
     }
 }

@@ -13,12 +13,18 @@ public class GitWebsiteUploader implements WebsiteUploader {
     private final Git cacheRepo;
     private final String branch;
     private final String gitRepoDailyPath;
+    private String commitMessage;
 
-    public GitWebsiteUploader(Git mainRepo, Git cacheRepo, String branch, String gitRepoDailyPath) {
+    public GitWebsiteUploader(Git mainRepo,
+                              Git cacheRepo,
+                              String branch,
+                              String gitRepoDailyPath,
+                              String commitMessage) {
         this.mainRepo = mainRepo;
         this.cacheRepo = cacheRepo;
         this.branch = branch;
         this.gitRepoDailyPath = gitRepoDailyPath;
+        this.commitMessage = commitMessage;
     }
 
     @Override
@@ -42,7 +48,7 @@ public class GitWebsiteUploader implements WebsiteUploader {
             Path start = dailyFiles.toPath();
             Files.walkFileTree(start, new CopyAndAddToGit(tempRepo, start));
             if (tempRepo.checkHasChanges()) {
-                tempRepo.commit("Updating " + new Date());
+                tempRepo.commit(String.format(commitMessage, new Date()));
                 tempRepo.push();
             }
         } catch (IOException e) {

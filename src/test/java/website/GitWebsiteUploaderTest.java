@@ -29,7 +29,7 @@ public class GitWebsiteUploaderTest {
 
     @Test
     public void testUpload() throws Exception {
-        WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, null, null, "daily");
+        WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, null, null, "daily", props.getCommitMessage());
 
         Path path = createTempDirectory("git-website-uploader");
         write(path.resolve("file1.txt"), "value1\nline2\n".getBytes());
@@ -70,7 +70,7 @@ public class GitWebsiteUploaderTest {
     public void testUploadWithCache() throws Exception {
         try (Git cacheRepo = new Git(createTempDirectory("git-website-cache").toFile())
                 .withDeleteAllOnClose(true)) {
-            WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, cacheRepo, null, "daily");
+            WebsiteUploader uploader = new GitWebsiteUploader(mainRepo, cacheRepo, null, "daily", props.getCommitMessage());
 
             Path path = createTempDirectory("git-website-uploader");
             write(path.resolve("file1.txt"), "value1\nline2\n".getBytes());

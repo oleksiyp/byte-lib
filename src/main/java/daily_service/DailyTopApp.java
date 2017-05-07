@@ -42,7 +42,8 @@ public class DailyTopApp {
                                     new Git(props.getRepo()),
                                     new Git(new File(props.getCache())),
                                     props.getBranch(),
-                                    props.getDailyDir()))
+                                    props.getDailyDir(),
+                                    props.getCommitMessage()))
                             .collect(toList()));
         }
 
