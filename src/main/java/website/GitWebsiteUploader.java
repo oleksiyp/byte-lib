@@ -14,17 +14,41 @@ public class GitWebsiteUploader implements WebsiteUploader {
     private final String branch;
     private final String gitRepoDailyPath;
     private String commitMessage;
+    private String userEmail;
+    private String userName;
 
     public GitWebsiteUploader(Git mainRepo,
                               Git cacheRepo,
                               String branch,
-                              String gitRepoDailyPath,
-                              String commitMessage) {
+                              String gitRepoDailyPath) {
         this.mainRepo = mainRepo;
         this.cacheRepo = cacheRepo;
         this.branch = branch;
         this.gitRepoDailyPath = gitRepoDailyPath;
+    }
+
+    public String getCommitMessage() {
+        return commitMessage;
+    }
+
+    public void setCommitMessage(String commitMessage) {
         this.commitMessage = commitMessage;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     @Override
@@ -45,10 +69,21 @@ public class GitWebsiteUploader implements WebsiteUploader {
         try (Git tempRepo = cacheRepo != null ?
                 cacheRepo :
                 mainRepo.clone(tempDir("git-website-uploader-repo"), branch)) {
+
+            if (userEmail != null) {
+                tempRepo.git("config", "--global", "user.email", userEmail);
+            }
+            if (userName != null) {
+                tempRepo.git("config", "--global", "user.name", userName);
+            }
+
             Path start = dailyFiles.toPath();
             Files.walkFileTree(start, new CopyAndAddToGit(tempRepo, start));
             if (tempRepo.checkHasChanges()) {
-                tempRepo.commit(String.format(commitMessage, new Date()));
+                tempRepo.commit(String.format(
+                        commitMessage != null ?
+                                commitMessage :
+                                "Data update %s", new Date()));
                 tempRepo.push();
             }
         } catch (IOException e) {

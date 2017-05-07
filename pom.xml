@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <docker.image.prefix>daily-top-service</docker.image.prefix>
+        <docker.image.prefix>top-wikipedia</docker.image.prefix>
     </properties>
 
     <parent>
@@ -28,6 +28,10 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>com.spotify</groupId>

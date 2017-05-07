@@ -168,6 +168,13 @@ public class Git implements Closeable {
         return Files.isDirectory(Paths.get(basePath, ".git"));
     }
 
+    public void git(String ...args) {
+        String []cmd = new String[args.length + 1];
+        System.arraycopy(args, 0, cmd, 1, args.length);
+        cmd[0] = "git";
+        execute(cmd);
+    }
+
 
     private static class DeletingFileVisitor extends SimpleFileVisitor<Path> {
         @Override

@@ -3,6 +3,7 @@ package daily_service;
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import daily_service.props.DailyTopServiceProperties;
+import daily_service.props.GitWebsiteUploaderProperties;
 import dbpedia.DbpediaLookups;
 import dbpedia.ImagesLookup;
 import dbpedia.InterlinksLookup;
@@ -40,18 +41,27 @@ public class DailyTopApp {
             uploaders.addAll(
                     properties.getGit()
                             .stream()
-                            .map(props -> new GitWebsiteUploader(
-                                    new Git(props.getRepo()),
-                                    new Git(new File(props.getCache())),
-                                    props.getBranch(),
-                                    props.getDailyDir(),
-                                    props.getCommitMessage()))
+                            .map(this::createGitWebsiteUploader)
                             .collect(toList()));
         }
 
         WebsiteUploader uploader = new ManyWebsiteUploader(uploaders);
 
         uploader.setPathToDaily(new File(properties.getDailyJsonDir()));
+
+        return uploader;
+    }
+
+    private GitWebsiteUploader createGitWebsiteUploader(GitWebsiteUploaderProperties props) {
+        GitWebsiteUploader uploader = new GitWebsiteUploader(
+                new Git(props.getRepo()),
+                new Git(new File(props.getCache())),
+                props.getBranch(),
+                props.getDailyDir());
+
+        uploader.setCommitMessage(props.getCommitMessage());
+        uploader.setUserEmail(props.getUserEmail());
+        uploader.setUserName(props.getUserName());
 
         return uploader;
     }

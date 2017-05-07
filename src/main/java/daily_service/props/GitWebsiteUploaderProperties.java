@@ -6,6 +6,8 @@ public class GitWebsiteUploaderProperties {
     private String branch;
     private String dailyDir;
     private String commitMessage;
+    private String userName;
+    private String userEmail;
 
     public String getRepo() {
         return repo;
@@ -45,5 +47,21 @@ public class GitWebsiteUploaderProperties {
 
     public String getCommitMessage() {
         return commitMessage;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }
