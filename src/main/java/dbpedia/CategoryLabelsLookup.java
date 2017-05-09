@@ -14,20 +14,22 @@ import java.util.List;
 
 import static byte_lib.io.ByteFiles.printStream;
 import static byte_lib.io.ByteFiles.readAll;
+import static byte_lib.string.ByteString.EMPTY;
 import static byte_lib.string.ByteString.NEW_LINE;
 import static byte_lib.string.ByteString.bs;
 
-public class LabelsLookup {
-    private static final Logger LOG = LoggerFactory.getLogger(LabelsLookup.class);
+public class CategoryLabelsLookup {
+    private static final Logger LOG = LoggerFactory.getLogger(CategoryLabelsLookup.class);
 
     private static final ByteString RDF_SCHEMA_LABEL = bs("http://www.w3.org/2000/01/rdf-schema#label");
+    public static final ByteString CATEGORY_PREFIX = bs("Category:");
 
     private final File labelsFile;
     private final File labelsData;
 
     private IdxByteStringMap labelsMap;
 
-    public LabelsLookup(File labelsData, File labelsFile) {
+    public CategoryLabelsLookup(File labelsData, File labelsFile) {
         this.labelsFile = labelsFile;
         this.labelsData = labelsData;
     }
@@ -39,7 +41,7 @@ public class LabelsLookup {
             parseData();
         }
 
-        LOG.info("Loading labels info");
+        LOG.info("Loading category labels info");
         labelsMap = new IdxByteStringMap(readAll(labelsFile),
                 NEW_LINE,
                 IdxMapper::firstTwoFields,
@@ -88,6 +90,9 @@ public class LabelsLookup {
     }
 
     private ByteString resourceToLabel(ByteString resource) {
+        if (resource.startsWith(CATEGORY_PREFIX)) {
+            resource = resource.cut(CATEGORY_PREFIX, EMPTY);
+        }
         ByteStringBuilder builder = new ByteStringBuilder();
         long len = resource.length();
         for (int i = 0; i < len; i++) {
@@ -125,4 +130,5 @@ public class LabelsLookup {
                         .append(resource)
                         .build());
     }
+
 }

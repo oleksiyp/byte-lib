@@ -30,6 +30,12 @@ public class DailyTopServiceProperties {
     private int downloadParallelism;
     private Integer limitLastDays;
     private String fetcherCron;
+    private File categoryLabelsData;
+    private File categoryLabelsFile;
+    private File articleCategoriesData;
+    private File articleCategoriesFile;
+    private String dailyCatJsonDir;
+    private int topKCategories;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -197,5 +203,53 @@ public class DailyTopServiceProperties {
 
     public void setFetcherCron(String fetcherCron) {
         this.fetcherCron = fetcherCron;
+    }
+
+    public File getCategoryLabelsData() {
+        return categoryLabelsData;
+    }
+
+    public void setCategoryLabelsData(File categoryLabelsData) {
+        this.categoryLabelsData = categoryLabelsData;
+    }
+
+    public File getCategoryLabelsFile() {
+        return categoryLabelsFile;
+    }
+
+    public void setCategoryLabelsFile(File categoryLabelsFile) {
+        this.categoryLabelsFile = categoryLabelsFile;
+    }
+
+    public File getArticleCategoriesData() {
+        return articleCategoriesData;
+    }
+
+    public void setArticleCategoriesData(File articleCategoriesData) {
+        this.articleCategoriesData = articleCategoriesData;
+    }
+
+    public File getArticleCategoriesFile() {
+        return articleCategoriesFile;
+    }
+
+    public void setArticleCategoriesFile(File articleCategoriesFile) {
+        this.articleCategoriesFile = articleCategoriesFile;
+    }
+
+    public String getDailyCatJsonDir() {
+        return dailyCatJsonDir;
+    }
+
+    public void setDailyCatJsonDir(String dailyCatJsonDir) {
+        this.dailyCatJsonDir = dailyCatJsonDir;
+    }
+
+    public int getTopKCategories() {
+        return topKCategories;
+    }
+
+    public void setTopKCategories(int topKCategories) {
+        this.topKCategories = topKCategories;
     }
 }

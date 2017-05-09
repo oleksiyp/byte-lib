@@ -4,10 +4,7 @@ import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import daily_service.props.DailyTopServiceProperties;
 import daily_service.props.GitWebsiteUploaderProperties;
-import dbpedia.DbpediaLookups;
-import dbpedia.ImagesLookup;
-import dbpedia.InterlinksLookup;
-import dbpedia.LabelsLookup;
+import dbpedia.*;
 import download.WikimediaDataSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -72,8 +69,10 @@ public class DailyTopApp {
 
         return new PageViewFetcher(
                 properties.getTopK(),
+                properties.getTopKCategories(),
                 properties.getHourlyJsonDir(),
                 properties.getDailyJsonDir(),
+                properties.getDailyCatJsonDir(),
                 lookups,
                 client,
                 properties.getLimitsJsonFile());
@@ -92,7 +91,7 @@ public class DailyTopApp {
                 fetcher,
                 (day) -> {
                     synchronized (uploader) {
-                        uploader.update();
+//                        uploader.update();
                     }
                 },
                 perDayExecutor,
@@ -142,13 +141,32 @@ public class DailyTopApp {
     }
 
     @Bean
+    public CategoryLabelsLookup categoryLabelsLookup() {
+        return new CategoryLabelsLookup(
+                properties.getCategoryLabelsData(),
+                properties.getCategoryLabelsFile()
+        );
+    }
+
+    @Bean
+    public ArticleCategoryLookup articleCategoryLookup(CategoryLabelsLookup categoryLabelsLookup) {
+        return new ArticleCategoryLookup(
+                properties.getArticleCategoriesData(),
+                properties.getArticleCategoriesFile(),
+                categoryLabelsLookup
+        );
+    }
+
+    @Bean
     public DbpediaLookups lookups(ImagesLookup imagesLookup,
                                   LabelsLookup labelsLookup,
-                                  InterlinksLookup interlinksLookup) {
+                                  InterlinksLookup interlinksLookup,
+                                  ArticleCategoryLookup articleCategoryLookup) {
 
         return new DbpediaLookups(imagesLookup,
                 labelsLookup,
-                interlinksLookup);
+                interlinksLookup,
+                articleCategoryLookup);
     }
 
 

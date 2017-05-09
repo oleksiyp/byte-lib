@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -101,7 +102,8 @@ public class DbpediaFile {
 
     public static List<DbpediaFile> dirFiles(File dir) {
         List<DbpediaFile> files = Stream.of(
-                Optional.ofNullable(dir.listFiles()).orElse(new File[0]))
+                Optional.ofNullable(dir.listFiles((d, name) -> name.endsWith(".bz2")))
+                        .orElse(new File[0]))
                 .filter(File::isFile)
                 .map(DbpediaFile::new)
                 .collect(Collectors.toList());
