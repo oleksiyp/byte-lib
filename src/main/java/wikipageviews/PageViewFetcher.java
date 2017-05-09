@@ -32,24 +32,28 @@ public class PageViewFetcher {
     private final String hourlyJsonDir;
     private final String dailyJsonDir;
     private final String limitsJsonFile;
+    private final BlackList blackList;
 
     public PageViewFetcher(int topK,
                            String hourlyJsonDir,
                            String dailyJsonDir,
                            DbpediaLookups lookups,
                            OkHttpClient downloadClient,
-                           String limitsJsonFile) {
+                           String limitsJsonFile,
+                           BlackList blackList) {
         this.topK = topK;
         this.hourlyJsonDir = hourlyJsonDir;
         this.lookups = lookups;
         this.downloadClient = downloadClient;
         this.dailyJsonDir = dailyJsonDir;
         this.limitsJsonFile = limitsJsonFile;
+        this.blackList = blackList;
     }
 
     private void parseFile(PageView pageView) {
         try {
             pageView.setLookups(lookups)
+                    .setBlackList(blackList)
                     .download(downloadClient)
                     .writeHourlyTopToJson(topK);
         } catch (IOException err) {

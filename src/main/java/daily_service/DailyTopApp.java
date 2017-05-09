@@ -19,6 +19,7 @@ import website.Git;
 import website.GitWebsiteUploader;
 import website.ManyWebsiteUploader;
 import website.WebsiteUploader;
+import wikipageviews.BlackList;
 import wikipageviews.PageViewFetcher;
 
 import java.io.File;
@@ -76,7 +77,8 @@ public class DailyTopApp {
                 properties.getDailyJsonDir(),
                 lookups,
                 client,
-                properties.getLimitsJsonFile());
+                properties.getLimitsJsonFile(),
+                new BlackList(properties.getBlackList()));
     }
 
     @Bean

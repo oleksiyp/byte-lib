@@ -30,6 +30,7 @@ public class DailyTopServiceProperties {
     private int downloadParallelism;
     private Integer limitLastDays;
     private String fetcherCron;
+    private File blackList;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -197,5 +198,13 @@ public class DailyTopServiceProperties {
 
     public void setFetcherCron(String fetcherCron) {
         this.fetcherCron = fetcherCron;
+    }
+
+    public File getBlackList() {
+        return blackList;
+    }
+
+    public void setBlackList(File blackList) {
+        this.blackList = blackList;
     }
 }

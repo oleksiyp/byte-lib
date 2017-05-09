@@ -16,10 +16,7 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,6 +36,7 @@ public class PageView {
     private String jsonOut;
     private List<PageViewRecord> topRecords;
     private DbpediaLookups lookups;
+    private BlackList blackList;
 
     public PageView() {
         rate = new MainPageRate();
@@ -85,6 +83,15 @@ public class PageView {
         return this;
     }
 
+    public BlackList getBlackList() {
+        return blackList;
+    }
+
+    public PageView setBlackList(BlackList backlist) {
+        this.blackList = backlist;
+        return this;
+    }
+
     public ByteStringPageViewRecord parseRecord(ByteString pageview) {
         ByteString lang = pageview.firstField();
         if (!lookups.getInterlinksLookup().hasLang(lang)) {
@@ -100,6 +107,10 @@ public class PageView {
 
         if (lookups.getInterlinksLookup().isSpecial(resource)
                 || lookups.getInterlinksLookup().isTemplate(resource)) {
+            return null;
+        }
+
+        if (blackList != null && blackList.isForbidden(resource)) {
             return null;
         }
 
