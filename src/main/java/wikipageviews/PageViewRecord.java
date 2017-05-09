@@ -1,5 +1,7 @@
 package wikipageviews;
 
+import java.util.List;
+
 public class PageViewRecord {
     private String lang;
     private String resource;
@@ -8,9 +10,9 @@ public class PageViewRecord {
     private String thumbnail;
     private String depiction;
     private String label;
+    private List<String> categories;
 
     public PageViewRecord() {
-
     }
 
     public PageViewRecord(String lang,
@@ -19,7 +21,8 @@ public class PageViewRecord {
                           String thumbnail,
                           String depiction,
                           String label,
-                          double score) {
+                          double score,
+                          List<String> categories) {
         this.lang = lang;
         this.resource = resource;
         this.statCounter = statCounter;
@@ -27,6 +30,7 @@ public class PageViewRecord {
         this.depiction = depiction;
         this.label = label;
         this.score = score;
+        this.categories = categories;
     }
 
     public static String getLangResource(PageViewRecord pvr) {
@@ -89,7 +93,15 @@ public class PageViewRecord {
         this.label = label;
     }
 
-    public static PageViewRecord mergeTwoPageViews(PageViewRecord pageViewRecord1,
+    public List<String> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(List<String> categories) {
+        this.categories = categories;
+    }
+
+    public static PageViewRecord selectTopPageView(PageViewRecord pageViewRecord1,
                                                    PageViewRecord pageViewRecord2) {
         if (pageViewRecord1.score > pageViewRecord2.score) {
             return pageViewRecord1;

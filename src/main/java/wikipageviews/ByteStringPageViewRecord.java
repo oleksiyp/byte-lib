@@ -1,6 +1,11 @@
 package wikipageviews;
 
 import byte_lib.string.ByteString;
+import dbpedia.ArticleCategoryLookup;
+
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 public class ByteStringPageViewRecord {
     private final ByteString lang;
@@ -10,6 +15,7 @@ public class ByteStringPageViewRecord {
     private final ByteString thumbnail;
     private final ByteString depiction;
     private final ByteString label;
+    private List<ByteString> categories;
 
     public ByteStringPageViewRecord(ByteString lang,
                                     ByteString resource,
@@ -61,6 +67,11 @@ public class ByteStringPageViewRecord {
         return score;
     }
 
+    public ByteStringPageViewRecord lookupCategories(ArticleCategoryLookup categoryLookup) {
+        categories = categoryLookup.getCategory(lang, label);
+        return this;
+    }
+
     public PageViewRecord toJavaStrings() {
         return new PageViewRecord(
                 lang.toString(),
@@ -69,7 +80,10 @@ public class ByteStringPageViewRecord {
                 thumbnail.toString(),
                 depiction.toString(),
                 label.toString(),
-                score
+                score,
+                categories.stream()
+                        .map(Object::toString)
+                        .collect(toList())
         );
     }
 }

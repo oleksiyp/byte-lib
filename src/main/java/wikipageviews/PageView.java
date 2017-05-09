@@ -67,7 +67,9 @@ public class PageView {
         while (!topK.isEmpty()) {
             ByteStringPageViewRecord record = topK.remove();
             record.calcScore(rate);
-            topRecords.add(record.toJavaStrings());
+            topRecords.add(record
+                    .lookupCategories(lookups.getArticleCategoryLookup())
+                    .toJavaStrings());
         }
 
         Collections.reverse(topRecords);
@@ -152,9 +154,7 @@ public class PageView {
     public PageView writeHourlyTopToJson(int k) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         File out = new File(getJsonOut());
-        if (out.isFile()) {
-            LOG.info("Reading top hourly records {}", out);
-            topRecords = mapper.readValue(out, new TypeReference<List<PageViewRecord>>(){});
+        if (readHourlyJsonOut()) {
             return this;
         }
         LOG.info("Parsing {}", new File(file).getName());
@@ -166,6 +166,16 @@ public class PageView {
                 topRecords);
 
         return this;
+    }
+
+    public boolean readHourlyJsonOut() throws IOException {
+        File out = new File(getJsonOut());
+        if (out.isFile()) {
+            LOG.info("Reading top hourly records {}", out);
+            topRecords = new ObjectMapper().readValue(out, new TypeReference<List<PageViewRecord>>() {});
+            return true;
+        }
+        return false;
     }
 
     public PageView setUrl(String url) {
