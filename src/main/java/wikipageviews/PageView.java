@@ -9,6 +9,7 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ResponseBody;
 import dbpedia.DbpediaLookups;
+import dbpedia.DbpediaResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,16 +17,17 @@ import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static byte_lib.io.ByteFiles.inputStream;
 import static byte_lib.string.ByteString.bs;
 import static java.util.Comparator.comparingInt;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 
 public class PageView {
     private final static Logger LOG = LoggerFactory.getLogger(PageView.class);
@@ -254,5 +256,9 @@ public class PageView {
 
     public List<PageViewRecord> getTopRecords() {
         return topRecords;
+    }
+
+    public boolean hasFile() {
+        return new File(file).isFile();
     }
 }

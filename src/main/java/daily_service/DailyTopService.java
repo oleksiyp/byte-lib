@@ -51,7 +51,10 @@ public class DailyTopService {
     public void run() {
         List<PageView> fetchedPageViews = dataSet
                 .fetchPageviews()
-                .getPageViews();
+                .getPageViews()
+                .stream()
+                .filter(PageView::hasFile)
+                .collect(toList());
 
         fetcher.assignJsonOutDir(fetchedPageViews);
 

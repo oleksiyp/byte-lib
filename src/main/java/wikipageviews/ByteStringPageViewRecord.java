@@ -32,11 +32,12 @@ public class ByteStringPageViewRecord {
     }
 
     public void calcScore(MainPageRate mainPageRate) {
-        if (mainPageRate.isCalculated()) {
-            score = 100.0 * statCounter / mainPageRate.get();
-        } else {
-            score = 0.0;
-        }
+        score = statCounter / 100.0;
+//        if (mainPageRate.isCalculated()) {
+//            score = 100.0 * statCounter / mainPageRate.get();
+//        } else {
+//            score = 0.0;
+//        }
     }
 
     public ByteString getLang() {

@@ -58,9 +58,11 @@ public class PageViewRecordCategory {
 
     public void scoreRecords(int maxSize) {
         score = records.stream()
-                .sorted(comparing(PageViewRecord::getScore))
+                .sorted(comparing(PageViewRecord::getScore).reversed())
                 .limit(maxSize)
                 .mapToDouble(PageViewRecord::getScore)
-                .sum();
+                .average()
+                .orElse(0);
+        ;
     }
 }

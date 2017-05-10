@@ -89,7 +89,7 @@ public class PageViewFetcher {
     }
 
     private void aggregateDayTopWithCategories(List<PageView> grouped, String day) throws IOException {
-        Collection<PageViewRecord> mergedAndDeduplicated = grouped.stream()
+        List<PageViewRecord> mergedAndDeduplicated = grouped.stream()
                 .map(PageView::getTopRecords)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(
@@ -100,6 +100,10 @@ public class PageViewFetcher {
                 .stream()
                 .sorted(comparing(PageViewRecord::getScore).reversed())
                 .collect(Collectors.toList());
+
+        for (int i = 0; i < mergedAndDeduplicated.size(); i++) {
+            mergedAndDeduplicated.get(i).setPosition(i);
+        }
 
         Map<String, PageViewRecordCategory> perCategory = new HashMap<>();
 
@@ -112,28 +116,39 @@ public class PageViewFetcher {
                                     .add(pageViewRecord));
         });
 
+        int minRecords = 2;
+        int maxRecords = 12;
+
         perCategory
                 .values()
-                .forEach(cat -> cat.scoreRecords(12));
+                .forEach(cat -> cat.scoreRecords(maxRecords));
 
+
+        Comparator<PageViewRecordCategory> catComparator =
+                comparing(PageViewRecordCategory::getScore)
+                        .thenComparing(cat -> cat.getCategory().length());
 
         List<PageViewRecordCategory> allCategories = perCategory.values()
                 .stream()
-                .sorted(comparing(PageViewRecordCategory::getScore))
+                .sorted(catComparator)
                 .collect(toList());
+
 
         List<PageViewRecordCategory> categories = new ArrayList<>();
         while (categories.size() < topKCategories && !allCategories.isEmpty()) {
             PageViewRecordCategory topCategory = allCategories.remove(allCategories.size() - 1);
+            if (topCategory.getRecords().size() < minRecords) {
+                continue;
+            }
             categories.add(topCategory);
 
             HashSet<PageViewRecord> topRecords = new HashSet<>(topCategory.getRecords());
             allCategories.forEach(cat -> cat.getRecords().removeAll(topRecords));
-            allCategories.forEach(cat -> cat.scoreRecords(12));
-            allCategories.sort(comparing(PageViewRecordCategory::getScore));
+            allCategories.forEach(cat -> cat.scoreRecords(maxRecords));
+            allCategories.sort(catComparator);
         }
 
-        categories.forEach(cat -> cat.cutRecords(12));
+        categories.forEach(cat -> cat.cutRecords(maxRecords));
 
         Set<PageViewRecord> categorizedRecords =
                 categories.stream()
