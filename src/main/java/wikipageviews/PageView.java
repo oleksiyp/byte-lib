@@ -1,7 +1,7 @@
 package wikipageviews;
 
-import byte_lib.string.ByteString;
 import byte_lib.io.ByteStringInputStream;
+import byte_lib.string.ByteString;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.squareup.okhttp.OkHttpClient;
@@ -9,25 +9,25 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ResponseBody;
 import dbpedia.DbpediaLookups;
-import dbpedia.DbpediaResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
-import java.util.function.Function;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.PriorityQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static byte_lib.io.ByteFiles.inputStream;
-import static byte_lib.string.ByteString.bs;
 import static java.util.Comparator.comparingInt;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 
 public class PageView {
     private final static Logger LOG = LoggerFactory.getLogger(PageView.class);
@@ -41,6 +41,7 @@ public class PageView {
     private String jsonOut;
     private List<PageViewRecord> topRecords;
     private DbpediaLookups lookups;
+    private BlackList blackList;
 
     public PageView() {
         rate = new MainPageRate();
@@ -89,6 +90,15 @@ public class PageView {
         return this;
     }
 
+    public BlackList getBlackList() {
+        return blackList;
+    }
+
+    public PageView setBlackList(BlackList backlist) {
+        this.blackList = backlist;
+        return this;
+    }
+
     public ByteStringPageViewRecord parseRecord(ByteString pageview) {
         ByteString lang = pageview.firstField();
         if (!lookups.getInterlinksLookup().hasLang(lang)) {
@@ -104,6 +114,10 @@ public class PageView {
 
         if (lookups.getInterlinksLookup().isSpecial(resource)
                 || lookups.getInterlinksLookup().isTemplate(resource)) {
+            return null;
+        }
+
+        if (blackList != null && blackList.isForbidden(resource)) {
             return null;
         }
 
