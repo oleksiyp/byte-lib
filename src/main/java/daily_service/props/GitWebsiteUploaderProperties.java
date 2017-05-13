@@ -8,6 +8,7 @@ public class GitWebsiteUploaderProperties {
     private String commitMessage;
     private String userName;
     private String userEmail;
+    private String dailyCatDir;
 
     public String getRepo() {
         return repo;
@@ -63,5 +64,13 @@ public class GitWebsiteUploaderProperties {
 
     public void setUserEmail(String userEmail) {
         this.userEmail = userEmail;
+    }
+
+    public String getDailyCatDir() {
+        return dailyCatDir;
+    }
+
+    public void setDailyCatDir(String dailyCatDir) {
+        this.dailyCatDir = dailyCatDir;
     }
 }

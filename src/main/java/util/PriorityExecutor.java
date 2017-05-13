@@ -57,7 +57,6 @@ public class PriorityExecutor {
                         queue.wait();
                     }
                     task = queue.remove();
-                    locked.add(task);
                 }
                 try {
                     task.run();
@@ -78,11 +77,10 @@ public class PriorityExecutor {
 
     public void execute(Runnable object) {
         synchronized (queue) {
-            if (locked.contains(object)) {
-                return;
+            if (locked.add(object)) {
+                queue.add(object);
+                queue.notifyAll();
             }
-            queue.add(object);
-            queue.notifyAll();
         }
     }
 
@@ -92,11 +90,10 @@ public class PriorityExecutor {
                     .filter(o -> !locked.contains(o))
                     .collect(Collectors.toList());
 
-            if (objectsFiltered.isEmpty()) {
-                return;
-            }
             queue.addAll(objectsFiltered);
             queue.notifyAll();
+
+            locked.addAll(objectsFiltered);
         }
     }
 

@@ -17,6 +17,8 @@ import java.util.stream.Stream;
 
 import static java.lang.Math.max;
 import static java.util.Comparator.comparing;
+import static java.util.Comparator.comparingDouble;
+import static java.util.Comparator.comparingInt;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static wikipageviews.PageViewRecordCategory.OTHER_CATEGORY;
@@ -33,6 +35,7 @@ public class PageViewFetcher {
     private final String dailyJsonDir;
     private final String dailyCatJsonDir;
     private final String limitsJsonFile;
+    private final BlackList blackList;
 
     public PageViewFetcher(int topK,
                            int topKCategories,
@@ -41,7 +44,8 @@ public class PageViewFetcher {
                            String dailyCatJsonDir,
                            DbpediaLookups lookups,
                            OkHttpClient downloadClient,
-                           String limitsJsonFile) {
+                           String limitsJsonFile,
+                           BlackList blackList) {
         this.topK = topK;
         this.topKCategories = topKCategories;
         this.hourlyJsonDir = hourlyJsonDir;
@@ -50,11 +54,13 @@ public class PageViewFetcher {
         this.dailyJsonDir = dailyJsonDir;
         this.dailyCatJsonDir = dailyCatJsonDir;
         this.limitsJsonFile = limitsJsonFile;
+        this.blackList = blackList;
     }
 
     private void parseFile(PageView pageView) {
         try {
             pageView.setLookups(lookups)
+                    .setBlackList(blackList)
                     .download(downloadClient)
                     .writeHourlyTopToJson(topK);
         } catch (IOException err) {
@@ -89,7 +95,7 @@ public class PageViewFetcher {
     }
 
     private void aggregateDayTopWithCategories(List<PageView> grouped, String day) throws IOException {
-        Collection<PageViewRecord> mergedAndDeduplicated = grouped.stream()
+        List<PageViewRecord> mergedAndDeduplicated = grouped.stream()
                 .map(PageView::getTopRecords)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(
@@ -100,6 +106,10 @@ public class PageViewFetcher {
                 .stream()
                 .sorted(comparing(PageViewRecord::getScore).reversed())
                 .collect(Collectors.toList());
+
+        for (int i = 0; i < mergedAndDeduplicated.size(); i++) {
+            mergedAndDeduplicated.get(i).setPosition(i);
+        }
 
         Map<String, PageViewRecordCategory> perCategory = new HashMap<>();
 
@@ -112,28 +122,39 @@ public class PageViewFetcher {
                                     .add(pageViewRecord));
         });
 
+        int minRecords = 2;
+        int maxRecords = 12;
+
         perCategory
                 .values()
-                .forEach(cat -> cat.scoreRecords(12));
+                .forEach(cat -> cat.scoreRecords());
 
+
+        Comparator<PageViewRecordCategory> topCategories =
+                comparingInt(PageViewRecordCategory::getScoreRounded)
+                        .thenComparing(cat -> cat.getCategory().length());
 
         List<PageViewRecordCategory> allCategories = perCategory.values()
                 .stream()
-                .sorted(comparing(PageViewRecordCategory::getScore))
+                .sorted(topCategories)
                 .collect(toList());
+
 
         List<PageViewRecordCategory> categories = new ArrayList<>();
         while (categories.size() < topKCategories && !allCategories.isEmpty()) {
             PageViewRecordCategory topCategory = allCategories.remove(allCategories.size() - 1);
+            topCategory.cutRecords(maxRecords, topK);
+            if (topCategory.getRecords().size() < minRecords) {
+                continue;
+            }
             categories.add(topCategory);
 
             HashSet<PageViewRecord> topRecords = new HashSet<>(topCategory.getRecords());
             allCategories.forEach(cat -> cat.getRecords().removeAll(topRecords));
-            allCategories.forEach(cat -> cat.scoreRecords(12));
-            allCategories.sort(comparing(PageViewRecordCategory::getScore));
+            allCategories.forEach(PageViewRecordCategory::scoreRecords);
+            allCategories.sort(topCategories);
         }
 
-        categories.forEach(cat -> cat.cutRecords(12));
 
         Set<PageViewRecord> categorizedRecords =
                 categories.stream()

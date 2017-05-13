@@ -16,6 +16,7 @@ import website.Git;
 import website.GitWebsiteUploader;
 import website.ManyWebsiteUploader;
 import website.WebsiteUploader;
+import wikipageviews.BlackList;
 import wikipageviews.PageViewFetcher;
 
 import java.io.File;
@@ -45,6 +46,7 @@ public class DailyTopApp {
         WebsiteUploader uploader = new ManyWebsiteUploader(uploaders);
 
         uploader.setPathToDaily(new File(properties.getDailyJsonDir()));
+        uploader.setPathToDailyCat(new File(properties.getDailyCatJsonDir()));
 
         return uploader;
     }
@@ -59,6 +61,7 @@ public class DailyTopApp {
         uploader.setCommitMessage(props.getCommitMessage());
         uploader.setUserEmail(props.getUserEmail());
         uploader.setUserName(props.getUserName());
+        uploader.setGitRepoDailyCatPath(props.getDailyCatDir());
 
         return uploader;
     }
@@ -75,7 +78,8 @@ public class DailyTopApp {
                 properties.getDailyCatJsonDir(),
                 lookups,
                 client,
-                properties.getLimitsJsonFile());
+                properties.getLimitsJsonFile(),
+                new BlackList(properties.getBlackList()));
     }
 
     @Bean
@@ -91,7 +95,7 @@ public class DailyTopApp {
                 fetcher,
                 (day) -> {
                     synchronized (uploader) {
-//                        uploader.update();
+                        uploader.update();
                     }
                 },
                 perDayExecutor,

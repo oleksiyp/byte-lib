@@ -11,6 +11,7 @@ public class PageViewRecord {
     private String depiction;
     private String label;
     private List<String> categories;
+    private int position;
 
     public PageViewRecord() {
     }
@@ -99,6 +100,14 @@ public class PageViewRecord {
 
     public void setCategories(List<String> categories) {
         this.categories = categories;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
+    }
+
+    public int getPosition() {
+        return position;
     }
 
     public static PageViewRecord selectTopPageView(PageViewRecord pageViewRecord1,

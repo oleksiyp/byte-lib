@@ -36,6 +36,7 @@ public class DailyTopServiceProperties {
     private File articleCategoriesFile;
     private String dailyCatJsonDir;
     private int topKCategories;
+    private File blackList;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -251,5 +252,13 @@ public class DailyTopServiceProperties {
 
     public void setTopKCategories(int topKCategories) {
         this.topKCategories = topKCategories;
+    }
+
+    public File getBlackList() {
+        return blackList;
+    }
+
+    public void setBlackList(File blackList) {
+        this.blackList = blackList;
     }
 }
