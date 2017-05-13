@@ -37,6 +37,7 @@ public class DailyTopServiceProperties {
     private String dailyCatJsonDir;
     private int topKCategories;
     private File blackList;
+    private boolean closeAfterFetch;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -260,5 +261,13 @@ public class DailyTopServiceProperties {
 
     public void setBlackList(File blackList) {
         this.blackList = blackList;
+    }
+
+    public boolean closeAfterFetch() {
+        return closeAfterFetch;
+    }
+
+    public void setCloseAfterFetch(boolean closeAfterFetch) {
+        this.closeAfterFetch = closeAfterFetch;
     }
 }

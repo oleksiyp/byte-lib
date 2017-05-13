@@ -9,6 +9,7 @@ import download.WikimediaDataSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import util.PriorityExecutor;
@@ -175,6 +176,9 @@ public class DailyTopApp {
 
 
     public static void main(String[] args) {
-        SpringApplication.run(DailyTopApp.class, args);
+        ConfigurableApplicationContext ctx = SpringApplication.run(DailyTopApp.class, args);
+        if (ctx.getBean(DailyTopServiceProperties.class).closeAfterFetch()) {
+            ctx.close();
+        }
     }
 }

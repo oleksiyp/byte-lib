@@ -17,8 +17,10 @@ public class FetcherCronSheduler  implements SchedulingConfigurer {
 
     @Override
     public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        taskRegistrar.addCronTask(service::run,
-                properties.getFetcherCron());
+        if (properties.getFetcherCron() != null) {
+            taskRegistrar.addCronTask(service::run,
+                    properties.getFetcherCron());
+        }
     }
 }
 
