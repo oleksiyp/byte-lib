@@ -1,6 +1,5 @@
 package byte_lib.hashed;
 
-import byte_lib.io.ByteStringInputStream;
 import byte_lib.string.ByteString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,20 +33,18 @@ public class FileIdxByteStringMultiMap {
     private final File idxFile;
 
     public FileIdxByteStringMultiMap(File file,
+                                     ByteString itemSeprartor,
                                      IdxMapper keyMapper,
                                      IdxMapper valueMapper) {
 
         this.file = file;
 
         if (file.getName().endsWith(".snappy")) {
-            File newFile = new File(
-                    file.getPath()
-                            .replace(".snappy", ""));
+            File newFile = new File(nonArchivedName(file.getPath()));
 
             if (!newFile.isFile()) {
                 LOG.info("Unpacking " + file);
-                inputStream(file)
-                        .writeAll(printStream(newFile));
+                inputStream(file).writeAll(printStream(newFile));
             }
             this.file = newFile;
         }
@@ -61,9 +58,9 @@ public class FileIdxByteStringMultiMap {
         if (!idxFile.isFile()) {
             try (ByteString content = readAll(file)) {
                 this.content = content;
-                int records = content.howMuch(NEW_LINE);
+                int records = content.howMuch(itemSeprartor);
                 allocateCapacity(records);
-                indexFile();
+                this.content.iterateIdx(itemSeprartor, this::put0);
                 writeIdx();
                 this.content = null;
             }
@@ -113,12 +110,6 @@ public class FileIdxByteStringMultiMap {
         }
     }
 
-    private void indexFile() {
-        try (ByteStringInputStream in = inputStream(file)) {
-            in.readLines(this::put0);
-        }
-    }
-
     private void allocateCapacity(int capacity) {
         capacity *= 4;
         bits = Util.nBits(capacity);
@@ -152,11 +143,11 @@ public class FileIdxByteStringMultiMap {
         return Collections.emptyList();
     }
 
-    private boolean put0(ByteString line, long idx) {
-        long keyIdx = keyMapper.map(line, 0, line.length());
+    private boolean put0(long start, long end) {
+        long keyIdx = keyMapper.map(content, start, end);
         long keyStart = idxStart(keyIdx);
         long keyLen = idxLen(keyIdx);
-        long hash = hasher.hashCode(line, keyStart, keyLen);
+        long hash = hasher.hashCode(content, keyStart, keyLen);
         for (int n = 0; n < table.length; n++) {
             int item = openAddressItem(hash, n);
 
@@ -164,13 +155,13 @@ public class FileIdxByteStringMultiMap {
 
             if (entry == null) {
                 table[item] = new long[1];
-                addTable(item, idx);
+                addTable(item, encodeIdx(start, end));
                 bucketsFilled++;
                 return true;
             }
 
-            if (isChunkKey(entry[0], line, keyStart, keyLen)) {
-                addTable(item, idx);
+            if (isChunkKey(entry[0], content, keyStart, keyLen)) {
+                addTable(item, encodeIdx(start, end));
                 bucketsFilled++;
                 return true;
             }
@@ -191,10 +182,20 @@ public class FileIdxByteStringMultiMap {
         return isChunkKey(entryIdx, key2, 0, key2.length());
     }
 
-    private boolean isChunkKey(long entryIdx, ByteString key2, long key2Start, long key2Len) {
-        ByteString entry = seekAndRead(entryIdx);
+    private boolean isChunkKey(long entryIdx, ByteString key2Entry, long key2Start, long key2Len) {
+        long entryStart = idxStart(entryIdx);
+        long entryLen = idxLen(entryIdx);
 
-        long keyIdx = keyMapper.map(entry, 0, entry.length());
+        ByteString key1Entry;
+        long keyIdx;
+        if (content == null) {
+            key1Entry = seekAndRead(entryIdx);
+            keyIdx = keyMapper.map(key1Entry, 0, key1Entry.length());
+        } else {
+            key1Entry = content;
+            keyIdx = keyMapper.map(content, entryStart, entryStart + entryLen);
+        }
+
         long key1Start = idxStart(keyIdx);
         long key1Len = idxLen(keyIdx);
 
@@ -203,7 +204,7 @@ public class FileIdxByteStringMultiMap {
         }
 
         for (long i = 0; i < key2Len; i++) {
-            if (entry.byteAt(key1Start + i) != key2.byteAt(key2Start + i)) {
+            if (key1Entry.byteAt(key1Start + i) != key2Entry.byteAt(key2Start + i)) {
                 return false;
             }
         }
@@ -212,10 +213,6 @@ public class FileIdxByteStringMultiMap {
     }
 
     private ByteString seekAndRead(long entryIdx) {
-        if (content != null) {
-            return content.substringIdx(entryIdx);
-        }
-
         long entryStart = idxStart(entryIdx);
         long entryLen = idxLen(entryIdx);
 
@@ -223,7 +220,6 @@ public class FileIdxByteStringMultiMap {
             randomAccessFile.seek(entryStart);
             byte []entry = new byte[(int) entryLen];
             randomAccessFile.read(entry);
-
             return ba(entry);
         } catch (IOException e) {
             throw new IOError(e);

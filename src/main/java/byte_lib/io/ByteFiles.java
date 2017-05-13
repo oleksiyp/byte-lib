@@ -92,6 +92,21 @@ public class ByteFiles {
         }
     }
 
+    public static String nonArchivedName(String path) {
+        int ptr = path.lastIndexOf('.');
+        if (ptr == -1) {
+            return path;
+        }
+
+        String ext = path.substring(ptr);
+        String withoutExt = path.substring(0, ptr);
+
+        if (ext.equals(".snappy") || ext.equals(".bz2") || ext.equals(".gz")) {
+            return withoutExt;
+        }
+        return path;
+    }
+
     public static void writeMap(File file, ByteStringMap<ByteString> map) {
         try (PrintStream out = printStream(file)) {
             map.forEach((lang, obj) -> {
