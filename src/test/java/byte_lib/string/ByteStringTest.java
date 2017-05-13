@@ -165,15 +165,16 @@ public class ByteStringTest {
 
         buf.put(moreThanMax, (byte) 'a');
 
-        ByteString val = bb(buf);
-        ByteString val2 = val.copyOf();
+        try (ByteString val = bb(buf);
+             ByteString val2 = val.copyOf()) {
 
-        buf.put(moreThanMax, (byte) 'A');
+            buf.put(moreThanMax, (byte) 'A');
 
-        assertThat(val.length()).isEqualTo(moreThanMaxPlusOne);
-        assertThat(val.byteAt(moreThanMax)).isEqualTo((byte) 'A');
-        assertThat(val2.length()).isEqualTo(moreThanMaxPlusOne);
-        assertThat(val2.byteAt(moreThanMax)).isEqualTo((byte) 'a');
+            assertThat(val.length()).isEqualTo(moreThanMaxPlusOne);
+            assertThat(val.byteAt(moreThanMax)).isEqualTo((byte) 'A');
+            assertThat(val2.length()).isEqualTo(moreThanMaxPlusOne);
+            assertThat(val2.byteAt(moreThanMax)).isEqualTo((byte) 'a');
+        }
     }
 
     @Test
