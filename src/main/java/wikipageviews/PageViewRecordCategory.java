@@ -45,24 +45,26 @@ public class PageViewRecordCategory {
         return score;
     }
 
+    public int getScoreRounded() {
+        return (int) score;
+    }
+
     public void addAll(List<PageViewRecord> records) {
         this.records.addAll(records);
     }
 
-    public void cutRecords(int maxSize) {
+    public void cutRecords(int maxSize, int maxPosition) {
         records = records.stream()
                 .sorted(comparing(PageViewRecord::getScore).reversed())
+                .filter(pvr -> pvr.getPosition() < maxPosition)
                 .limit(maxSize)
                 .collect(Collectors.toList());
     }
 
-    public void scoreRecords(int maxSize) {
+    public void scoreRecords() {
         score = records.stream()
-                .sorted(comparing(PageViewRecord::getScore).reversed())
-                .limit(maxSize)
                 .mapToDouble(PageViewRecord::getScore)
                 .average()
-                .orElse(0);
-        ;
+                .orElse(0) * Math.log(records.size());
     }
 }

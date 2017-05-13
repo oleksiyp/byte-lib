@@ -46,6 +46,7 @@ public class DailyTopApp {
         WebsiteUploader uploader = new ManyWebsiteUploader(uploaders);
 
         uploader.setPathToDaily(new File(properties.getDailyJsonDir()));
+        uploader.setPathToDailyCat(new File(properties.getDailyCatJsonDir()));
 
         return uploader;
     }
@@ -60,6 +61,7 @@ public class DailyTopApp {
         uploader.setCommitMessage(props.getCommitMessage());
         uploader.setUserEmail(props.getUserEmail());
         uploader.setUserName(props.getUserName());
+        uploader.setGitRepoDailyCatPath(props.getDailyCatDir());
 
         return uploader;
     }
@@ -93,7 +95,7 @@ public class DailyTopApp {
                 fetcher,
                 (day) -> {
                     synchronized (uploader) {
-//                        uploader.update();
+                        uploader.update();
                     }
                 },
                 perDayExecutor,

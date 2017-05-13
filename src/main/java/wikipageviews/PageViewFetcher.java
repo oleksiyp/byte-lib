@@ -17,6 +17,8 @@ import java.util.stream.Stream;
 
 import static java.lang.Math.max;
 import static java.util.Comparator.comparing;
+import static java.util.Comparator.comparingDouble;
+import static java.util.Comparator.comparingInt;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static wikipageviews.PageViewRecordCategory.OTHER_CATEGORY;
@@ -125,22 +127,23 @@ public class PageViewFetcher {
 
         perCategory
                 .values()
-                .forEach(cat -> cat.scoreRecords(maxRecords));
+                .forEach(cat -> cat.scoreRecords());
 
 
-        Comparator<PageViewRecordCategory> catComparator =
-                comparing(PageViewRecordCategory::getScore)
+        Comparator<PageViewRecordCategory> topCategories =
+                comparingInt(PageViewRecordCategory::getScoreRounded)
                         .thenComparing(cat -> cat.getCategory().length());
 
         List<PageViewRecordCategory> allCategories = perCategory.values()
                 .stream()
-                .sorted(catComparator)
+                .sorted(topCategories)
                 .collect(toList());
 
 
         List<PageViewRecordCategory> categories = new ArrayList<>();
         while (categories.size() < topKCategories && !allCategories.isEmpty()) {
             PageViewRecordCategory topCategory = allCategories.remove(allCategories.size() - 1);
+            topCategory.cutRecords(maxRecords, topK);
             if (topCategory.getRecords().size() < minRecords) {
                 continue;
             }
@@ -148,11 +151,10 @@ public class PageViewFetcher {
 
             HashSet<PageViewRecord> topRecords = new HashSet<>(topCategory.getRecords());
             allCategories.forEach(cat -> cat.getRecords().removeAll(topRecords));
-            allCategories.forEach(cat -> cat.scoreRecords(maxRecords));
-            allCategories.sort(catComparator);
+            allCategories.forEach(PageViewRecordCategory::scoreRecords);
+            allCategories.sort(topCategories);
         }
 
-        categories.forEach(cat -> cat.cutRecords(maxRecords));
 
         Set<PageViewRecord> categorizedRecords =
                 categories.stream()

@@ -242,7 +242,7 @@ public class ByteString implements Comparable<ByteString> {
         return indexOf(key, 0, length()) != -1;
     }
 
-    public ByteString substring(int start) {
+    public ByteString substring(long start) {
         return substring(start, length());
     }
 

@@ -153,7 +153,17 @@ public class ArticleCategoryLookup {
         if (cats == null) {
             cats = EMPTY;
         }
-        return asList(cats.split(SEPARATOR));
+        ByteString[] arr = cats.split(SEPARATOR);
+        for (int i = 0; i < arr.length; i++) {
+            ByteString str = arr[i];
+            long idx = str.indexOf((byte) ':');
+            if (idx != -1) {
+                long idx2 = str.indexOf((byte) ' ');
+                ByteString langPart = idx2 != -1 ? str.substring(0, idx2 + 1) : EMPTY;
+                arr[i] = langPart.append(str.substring(idx + 1));
+            }
+        }
+        return asList(arr);
     }
 
     public List<ByteString> getCategory(ByteString lang, ByteString resource) {

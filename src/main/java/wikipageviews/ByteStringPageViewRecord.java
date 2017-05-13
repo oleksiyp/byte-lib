@@ -69,7 +69,7 @@ public class ByteStringPageViewRecord {
     }
 
     public ByteStringPageViewRecord lookupCategories(ArticleCategoryLookup categoryLookup) {
-        categories = categoryLookup.getCategory(lang, label);
+        categories = categoryLookup.getCategory(lang, resource);
         return this;
     }
 
