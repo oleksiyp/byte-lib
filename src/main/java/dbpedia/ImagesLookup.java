@@ -73,7 +73,6 @@ public class ImagesLookup {
             files.forEach(file ->
                     file.reportNFile()
                             .recodeSnappy()
-                            .countLines()
                             .readRecords(parser));
         }
     }

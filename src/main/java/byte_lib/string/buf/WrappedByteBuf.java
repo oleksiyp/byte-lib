@@ -95,4 +95,9 @@ public class WrappedByteBuf implements ByteBuf {
         return this;
     }
 
+    @Override
+    public void free() {
+        buffer = null;
+    }
+
 }

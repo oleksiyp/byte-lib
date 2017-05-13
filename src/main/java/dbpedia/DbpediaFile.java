@@ -1,18 +1,20 @@
 package dbpedia;
 
 import byte_lib.io.ByteFiles;
+import byte_lib.io.ByteStringInputStream;
 import byte_lib.string.ByteString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FilenameFilter;
+import java.io.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static byte_lib.io.ByteFiles.inputStream;
+import static byte_lib.io.ByteFiles.printStream;
 import static byte_lib.string.ByteString.NEW_LINE;
 import static byte_lib.string.ByteString.bs;
 
@@ -22,19 +24,11 @@ public class DbpediaFile {
 
     private File file;
 
-    private int linesCount;
     private int fileId;
     private int filesCount;
-    private ByteString content;
 
     public DbpediaFile(File file) {
         this.file = file;
-    }
-
-    public DbpediaFile countLines() {
-        ByteString allFile = readAll();
-        setLinesCount(allFile.howMuch(NEW_LINE));
-        return this;
     }
 
     private static boolean isCommentLine(ByteString s) {
@@ -45,38 +39,25 @@ public class DbpediaFile {
         DbpediaTupleParser parser = new DbpediaTupleParser();
 
         LOG.info("Parsing '" + file.getName() + "'");
-        readAll().iterate(NEW_LINE, line  -> {
-            if (isCommentLine(line)) {
-                return;
-            }
-
-            DbpediaTuple record = parser.parse(line);
-
-            if (record == null) {
-                if (parser.getError() != null) {
-                    String error = parser.getError();
-                    LOG.info(error);
+        try (ByteStringInputStream in = ByteFiles.inputStream(file)) {
+            in.readLines(line -> {
+                if (isCommentLine(line)) {
+                    return;
                 }
-                return;
-            }
 
-            recordConsumer.accept(record);
-        });
-    }
+                DbpediaTuple record = parser.parse(line);
 
-    public int getLinesCount() {
-        return linesCount;
-    }
+                if (record == null) {
+                    if (parser.getError() != null) {
+                        String error = parser.getError();
+                        LOG.info(error);
+                    }
+                    return;
+                }
 
-    public void setLinesCount(int linesCount) {
-        this.linesCount = linesCount;
-    }
-
-    public ByteString readAll() {
-        if (content != null) {
-            return content;
+                recordConsumer.accept(record);
+            });
         }
-        return content = ByteFiles.readAll(file);
     }
 
     public File getFile() {
@@ -131,8 +112,8 @@ public class DbpediaFile {
         File snappyFile = new File(file.getParent(), name);
         if (!snappyFile.isFile()) {
             LOG.info("Recoding file to snappy");
-            readAll();
-            ByteFiles.writeAll(snappyFile, content);
+
+            inputStream(file).writeAll(printStream(snappyFile));
         }
         file = snappyFile;
         return this;

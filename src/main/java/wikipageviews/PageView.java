@@ -61,8 +61,6 @@ public class PageView {
                     topK.remove();
                 }
             });
-        } catch (IOException e) {
-            throw new IOError(e);
         }
 
         topRecords = new ArrayList<>();

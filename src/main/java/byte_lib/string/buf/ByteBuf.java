@@ -35,4 +35,5 @@ public interface ByteBuf {
 
     ByteBuf flip();
 
+    void free();
 }

@@ -59,7 +59,6 @@ public class ArticleCategoryLookup {
             files.forEach(file ->
                     file.reportNFile()
                             .recodeSnappy()
-                            .countLines()
                             .readRecords((record) -> writeArticleCategory(out, record)));
         }
     }

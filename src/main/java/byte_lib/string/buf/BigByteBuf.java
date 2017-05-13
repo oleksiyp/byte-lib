@@ -230,6 +230,11 @@ public class BigByteBuf implements ByteBuf {
         return this;
     }
 
+    @Override
+    public void free() {
+        cleaner.clean();
+    }
+
     private long checkIndex(long idx) {
         if (idx < 0 || idx >= limit) {
             throw new IndexOutOfBoundsException();

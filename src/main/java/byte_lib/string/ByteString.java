@@ -2,6 +2,7 @@ package byte_lib.string;
 
 import byte_lib.string.buf.ByteBuf;
 
+import java.io.Closeable;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -13,7 +14,7 @@ import java.util.function.Consumer;
 
 import static byte_lib.string.buf.ByteBuf.wrap;
 
-public class ByteString implements Comparable<ByteString> {
+public class ByteString implements Comparable<ByteString>, AutoCloseable {
     public static final ByteString EMPTY = bs("");
     public static final ByteString SEPARATOR = bs(" ");
     public static final ByteString NEW_LINE = bs("\n");
@@ -21,7 +22,7 @@ public class ByteString implements Comparable<ByteString> {
     public static final int EXCHANGE_BUF_SIZE = 64 * 1024;
     public static final int SMALL_WRITE_TO_THRESHOLD = 20;
 
-    private final ByteBuf buffer;
+    private ByteBuf buffer;
 
     private ByteString(ByteBuf buffer) {
         this.buffer = buffer;
@@ -593,5 +594,11 @@ public class ByteString implements Comparable<ByteString> {
         }
 
         return substring(sIdx, eIdx);
+    }
+
+    @Override
+    public void close() {
+        buffer.free();
+        buffer = null;
     }
 }

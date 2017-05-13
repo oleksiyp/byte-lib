@@ -72,20 +72,24 @@ public class ByteFiles {
         }
     }
 
-    public static ByteStringInputStream inputStream(String path) throws IOException {
+    public static ByteStringInputStream inputStream(String path) {
         return inputStream(new File(path));
     }
 
-    public static ByteStringInputStream inputStream(File file) throws IOException {
-        InputStream in = new FileInputStream(file);
-        if (file.getName().endsWith(".gz")) {
-            in = new GZIPInputStream(in);
-        } else if (file.getName().endsWith(".bz2")) {
-            in = new BZip2CompressorInputStream(in, true);
-        } else if (file.getName().endsWith(".snappy")) {
-            in = new SnappyFramedInputStream(in, true);
+    public static ByteStringInputStream inputStream(File file) {
+        try {
+            InputStream in = new FileInputStream(file);
+            if (file.getName().endsWith(".gz")) {
+                in = new GZIPInputStream(in);
+            } else if (file.getName().endsWith(".bz2")) {
+                in = new BZip2CompressorInputStream(in, true);
+            } else if (file.getName().endsWith(".snappy")) {
+                in = new SnappyFramedInputStream(in, true);
+            }
+            return new ByteStringInputStream(in);
+        } catch (IOException ex) {
+            throw new IOError(ex);
         }
-        return new ByteStringInputStream(in);
     }
 
     public static void writeMap(File file, ByteStringMap<ByteString> map) {

@@ -89,7 +89,6 @@ public class InterlinksLookup {
         LOG.info("Parsing {} data", interlinksData);
         new DbpediaFile(interlinksData)
                 .recodeSnappy()
-                .countLines()
                 .readRecords(this::parseInterlinkRecord);
 
         mainPages.put(EN, MAIN_PAGE);

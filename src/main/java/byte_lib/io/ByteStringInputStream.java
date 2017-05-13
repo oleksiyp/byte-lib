@@ -3,19 +3,20 @@ package byte_lib.io;
 import byte_lib.string.buf.ByteBuf;
 import byte_lib.string.ByteString;
 
-import java.io.IOError;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class ByteStringInputStream extends InputStream {
+public class ByteStringInputStream extends InputStream implements Closeable {
     private final InputStream in;
     private byte []buf;
     private boolean eof;
     private boolean done;
     private int ptr;
     private int bufSz;
+    private long lastLineIdx;
+    private long bufferStart;
 
     public ByteStringInputStream(InputStream in) {
         this.in = in;
@@ -38,12 +39,14 @@ public class ByteStringInputStream extends InputStream {
             if (idx != -1) {
                 int oldPtr = ptr;
                 ptr = skipDoubleNewLine(buf, idx, bufSz) + 1;
+                lastLineIdx = ByteString.encodeIdx(bufferStart + oldPtr, bufferStart + idx);
                 return ByteString.ba(buf, oldPtr, idx - oldPtr);
             }
 
             if (eof) {
                 done = true;
                 if (ptr < bufSz) {
+                    lastLineIdx = ByteString.encodeIdx(bufferStart + ptr, bufferStart + bufSz);
                     return ByteString.ba(buf, ptr, bufSz - ptr);
                 }
                 return null;
@@ -78,6 +81,7 @@ public class ByteStringInputStream extends InputStream {
 
     private void compactBuf() {
         System.arraycopy(buf, ptr, buf, 0, bufSz - ptr);
+        bufferStart += ptr;
         bufSz -= ptr;
         ptr = 0;
     }
@@ -143,8 +147,6 @@ public class ByteStringInputStream extends InputStream {
                 cnt++;
             }
             return cnt;
-        } catch (IOException ex) {
-            throw new IOError(ex);
         }
     }
 
@@ -159,6 +161,20 @@ public class ByteStringInputStream extends InputStream {
         return result;
     }
 
+    public void writeAll(OutputStream out) {
+        try {
+            while (!eof) {
+                readMore();
+                out.write(buf, 0, bufSz);
+                bufSz = 0;
+            }
+            close();
+            out.close();
+        } catch (IOException ex) {
+            throw new IOError(ex);
+        }
+    }
+
     public void readLines(Consumer<ByteString> lines) {
         ByteString line;
         while ((line = nextLine()) != null) {
@@ -166,4 +182,19 @@ public class ByteStringInputStream extends InputStream {
         }
     }
 
+    public void readLines(BiConsumer<ByteString, Long> lineIdx) {
+        ByteString line;
+        while ((line = nextLine()) != null) {
+            lineIdx.accept(line, lastLineIdx);
+        }
+    }
+
+    @Override
+    public void close() {
+        try {
+            super.close();
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
+    }
 }

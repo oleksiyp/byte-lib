@@ -58,7 +58,6 @@ public class CategoryLabelsLookup {
             files.forEach(file ->
                     file.reportNFile()
                             .recodeSnappy()
-                            .countLines()
                             .readRecords((record) -> writeLabel(out, record)));
         }
     }
