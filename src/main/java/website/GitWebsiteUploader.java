@@ -92,10 +92,14 @@ public class GitWebsiteUploader implements WebsiteUploader {
                 tempRepo.git("config", "--global", "user.name", userName);
             }
 
-            Path start = dailyFiles.toPath();
-            Files.walkFileTree(start, new CopyAndAddToGit(tempRepo, start, gitRepoDailyPath));
-            start = dailyCatFiles.toPath();
-            Files.walkFileTree(start, new CopyAndAddToGit(tempRepo, start, gitRepoDailyCatPath));
+            if (dailyFiles != null) {
+                Path start = dailyFiles.toPath();
+                Files.walkFileTree(start, new CopyAndAddToGit(tempRepo, start, gitRepoDailyPath));
+            }
+            if (dailyCatFiles != null) {
+                Path start = dailyCatFiles.toPath();
+                Files.walkFileTree(start, new CopyAndAddToGit(tempRepo, start, gitRepoDailyCatPath));
+            }
             if (tempRepo.checkHasChanges()) {
                 tempRepo.commit(String.format(
                         commitMessage != null ?

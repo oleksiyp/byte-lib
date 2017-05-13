@@ -85,8 +85,6 @@ public class ArticleCategoryLookup {
                 if (prevRes[0] != null) {
                     out.print('\n');
                 }
-            } catch (IOException e) {
-                throw new IOError(e);
             }
         }
 
