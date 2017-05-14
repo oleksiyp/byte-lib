@@ -10,6 +10,7 @@ public class NextCron {
     public static void main(String[] args) {
         CronSequenceGenerator seq = new CronSequenceGenerator(
                 Arrays.stream(args).collect(Collectors.joining(" "))
+                        .replace(".", "*")
                 );
         Date now = new Date();
         Date next = seq.next(now);
