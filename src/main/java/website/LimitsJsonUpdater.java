@@ -3,8 +3,6 @@ package website;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import wikipageviews.DayLimits;
-import wikipageviews.PageViewFetcher;
 
 import java.io.File;
 import java.io.IOError;

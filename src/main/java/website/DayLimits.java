@@ -1,4 +1,4 @@
-package wikipageviews;
+package website;
 
 public class DayLimits {
     private String min;
