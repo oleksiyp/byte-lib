@@ -195,6 +195,9 @@ public class PageView {
     }
 
     public PageView download(OkHttpClient httpClient) {
+        if (hasJsonOut()) {
+            return this;
+        }
         if (new File(file).isFile()) {
             Request request = new Request.Builder()
                     .head()
