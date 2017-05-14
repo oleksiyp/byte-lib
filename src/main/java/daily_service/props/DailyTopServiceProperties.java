@@ -38,6 +38,8 @@ public class DailyTopServiceProperties {
     private int topKCategories;
     private File blackList;
     private boolean closeAfterFetch;
+    private int minRecordsPerCategory;
+    private int maxRecordsPerCategory;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -269,5 +271,21 @@ public class DailyTopServiceProperties {
 
     public void setCloseAfterFetch(boolean closeAfterFetch) {
         this.closeAfterFetch = closeAfterFetch;
+    }
+
+    public int getMinRecordsPerCategory() {
+        return minRecordsPerCategory;
+    }
+
+    public void setMinRecordsPerCategory(int minRecordsPerCategory) {
+        this.minRecordsPerCategory = minRecordsPerCategory;
+    }
+
+    public int getMaxRecordsPerCategory() {
+        return maxRecordsPerCategory;
+    }
+
+    public void setMaxRecordsPerCategory(int maxRecordsPerCategory) {
+        this.maxRecordsPerCategory = maxRecordsPerCategory;
     }
 }

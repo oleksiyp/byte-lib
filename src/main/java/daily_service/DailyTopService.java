@@ -4,6 +4,8 @@ import download.WikimediaDataSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.PriorityExecutor;
+import wikipageviews.DailyCatTopAggregator;
+import wikipageviews.DailyTopAggregator;
 import wikipageviews.PageView;
 import wikipageviews.PageViewFetcher;
 
@@ -28,19 +30,26 @@ public class DailyTopService {
     private Consumer<String> dailyNotifier;
     private PriorityExecutor perDayExecutor;
     private Optional<Integer> limitLastDays;
+    private final DailyTopAggregator aggregator;
+    private final DailyCatTopAggregator catAggregator;
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMdd");
 
     public DailyTopService(WikimediaDataSet dataSet,
                            PageViewFetcher fetcher,
                            Consumer<String> dailyNotifier,
                            PriorityExecutor perDayExecutor,
-                           Optional<Integer> limitLastDays) {
+                           Optional<Integer> limitLastDays,
+                           DailyTopAggregator aggregator,
+                           DailyCatTopAggregator catAggregator) {
         this.dataSet = dataSet;
         this.fetcher = fetcher;
         this.dailyNotifier = dailyNotifier;
 
         this.perDayExecutor = perDayExecutor;
         this.limitLastDays = limitLastDays;
+
+        this.aggregator = aggregator;
+        this.catAggregator = catAggregator;
     }
 
     @PostConstruct
@@ -76,12 +85,18 @@ public class DailyTopService {
         return fetchedPageViews
                 .stream()
                 .filter(pageView -> compareDays(pageView.getDay(), dayAfter))
-                .filter(PageView::hasNoJsonOut)
+                .filter(this::hasJsonMissing)
                 .map(PageView::getDay)
                 .collect(toSet())
                 .stream()
                 .sorted(Comparator.reverseOrder())
                 .collect(Collectors.toList());
+    }
+
+    private boolean hasJsonMissing(PageView pageView) {
+        return !pageView.hasJsonOut() ||
+                !aggregator.hasOutFile(pageView.getDay()) ||
+                !catAggregator.hasOutFile(pageView.getDay());
     }
 
     private Optional<String> subtractLimitDays(String lastDay) {
@@ -124,9 +139,9 @@ public class DailyTopService {
         @Override
         public void run() {
             try {
-                LOG.info("Parsing day {}, {} files", day, pageViews.size());
-                fetcher.parseDay(day, pageViews);
-                fetcher.updateLimits();
+                fetcher.processDay(day, pageViews);
+                aggregator.aggregate(day, pageViews);
+                catAggregator.aggregate(day, pageViews);
                 dailyNotifier.accept(day);
             } catch (IOException e) {
                 LOG.warn("Error fetching daily stats", e);

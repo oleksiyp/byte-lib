@@ -13,11 +13,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import util.PriorityExecutor;
-import website.Git;
-import website.GitWebsiteUploader;
-import website.ManyWebsiteUploader;
-import website.WebsiteUploader;
+import website.*;
 import wikipageviews.BlackList;
+import wikipageviews.DailyCatTopAggregator;
+import wikipageviews.DailyTopAggregator;
 import wikipageviews.PageViewFetcher;
 
 import java.io.File;
@@ -73,13 +72,9 @@ public class DailyTopApp {
 
         return new PageViewFetcher(
                 properties.getTopK(),
-                properties.getTopKCategories(),
                 properties.getHourlyJsonDir(),
-                properties.getDailyJsonDir(),
-                properties.getDailyCatJsonDir(),
                 lookups,
                 client,
-                properties.getLimitsJsonFile(),
                 new BlackList(properties.getBlackList()));
     }
 
@@ -91,16 +86,40 @@ public class DailyTopApp {
 
         PriorityExecutor perDayExecutor = new PriorityExecutor(properties.getDownloadParallelism(), threadFactory);
 
+        LimitsJsonUpdater dailyLimitsJsonUpdater = new LimitsJsonUpdater(
+                new File(properties.getDailyJsonDir()),
+                new File(properties.getDailyJsonDir(), properties.getLimitsJsonFile())
+        );
+
+        LimitsJsonUpdater dailyCatLimitsJsonUpdater = new LimitsJsonUpdater(
+                new File(properties.getDailyCatJsonDir()),
+                new File(properties.getDailyCatJsonDir(), properties.getLimitsJsonFile())
+        );
+
+        DailyTopAggregator aggregator = new DailyTopAggregator(
+                properties.getTopK(),
+                properties.getDailyJsonDir());
+
+        DailyCatTopAggregator catAggregator = new DailyCatTopAggregator(
+                properties.getTopK(),
+                properties.getDailyCatJsonDir(),
+                properties.getTopKCategories(),
+                properties.getMinRecordsPerCategory(),
+                properties.getMaxRecordsPerCategory());
 
         return new DailyTopService(dataSet,
                 fetcher,
                 (day) -> {
                     synchronized (uploader) {
+                        dailyLimitsJsonUpdater.updateLimitsJson();
+                        dailyCatLimitsJsonUpdater.updateLimitsJson();
                         uploader.update();
                     }
                 },
                 perDayExecutor,
-                ofNullable(properties.getLimitLastDays()));
+                ofNullable(properties.getLimitLastDays()),
+                aggregator,
+                catAggregator);
     }
 
     @Bean

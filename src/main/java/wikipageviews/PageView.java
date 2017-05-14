@@ -154,8 +154,7 @@ public class PageView {
         return "--------";
     }
 
-    public PageView writeHourlyTopToJson(int k) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
+    public PageView writeHourlyTopToJson(int k) {
         File out = new File(getJsonOut());
         if (readHourlyJsonOut()) {
             return this;
@@ -164,18 +163,27 @@ public class PageView {
         parseRecords(k);
         out.getParentFile().mkdirs();
         LOG.info("Writing top hourly {}", out);
-        mapper.writeValue(
-                out,
-                topRecords);
+        try {
+            new ObjectMapper().writeValue(
+                    out,
+                    topRecords);
+        } catch (IOException ex) {
+            throw new IOError(ex);
+        }
 
         return this;
     }
 
-    public boolean readHourlyJsonOut() throws IOException {
+    public boolean readHourlyJsonOut() {
         File out = new File(getJsonOut());
         if (out.isFile()) {
             LOG.info("Reading top hourly records {}", out);
-            topRecords = new ObjectMapper().readValue(out, new TypeReference<List<PageViewRecord>>() {});
+            try {
+                topRecords = new ObjectMapper().readValue(out, new TypeReference<List<PageViewRecord>>() {});
+            } catch (IOException e) {
+                LOG.error("Failed to read JSON", e);
+                return false;
+            }
             return true;
         }
         return false;
@@ -245,6 +253,12 @@ public class PageView {
         return this;
     }
 
+    public PageView removeDownloaded() {
+        new File(file).delete();
+        return this;
+    }
+
+
     public String getJsonOut() {
         if (jsonOut == null && file != null) {
             if (jsonOutDir == null) {
@@ -262,8 +276,8 @@ public class PageView {
         return topRecords != null;
     }
 
-    public boolean hasNoJsonOut() {
-        return !new File(getJsonOut()).isFile();
+    public boolean hasJsonOut() {
+        return new File(getJsonOut()).isFile();
     }
 
     public List<PageViewRecord> getTopRecords() {
