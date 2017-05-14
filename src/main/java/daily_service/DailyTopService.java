@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -32,6 +34,7 @@ public class DailyTopService {
     private Optional<Integer> limitLastDays;
     private final DailyTopAggregator aggregator;
     private final DailyCatTopAggregator catAggregator;
+    private boolean waitFetchOnInit;
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMdd");
 
     public DailyTopService(WikimediaDataSet dataSet,
@@ -40,7 +43,8 @@ public class DailyTopService {
                            PriorityExecutor perDayExecutor,
                            Optional<Integer> limitLastDays,
                            DailyTopAggregator aggregator,
-                           DailyCatTopAggregator catAggregator) {
+                           DailyCatTopAggregator catAggregator,
+                           boolean waitFetchOnInit) {
         this.dataSet = dataSet;
         this.fetcher = fetcher;
         this.dailyNotifier = dailyNotifier;
@@ -50,14 +54,22 @@ public class DailyTopService {
 
         this.aggregator = aggregator;
         this.catAggregator = catAggregator;
+        this.waitFetchOnInit = waitFetchOnInit;
     }
 
     @PostConstruct
     public void init() {
-        run();
+        CompletableFuture<Void> task = run();
+        if (waitFetchOnInit) {
+            try {
+                task.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
-    public void run() {
+    public CompletableFuture<Void> run() {
         List<PageView> fetchedPageViews = dataSet
                 .fetchPageviews()
                 .getPageViews();
@@ -73,7 +85,7 @@ public class DailyTopService {
                 .map(day -> new PageViewDailyFetchTask(day, perDay.get(day)))
                 .collect(toList());
 
-        perDayExecutor.executeAll(tasks);
+        return perDayExecutor.executeAll(tasks);
     }
 
     private List<String> daysHasMissingJsons(List<PageView> fetchedPageViews) {

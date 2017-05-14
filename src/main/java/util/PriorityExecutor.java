@@ -4,14 +4,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadFactory;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 public class PriorityExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(PriorityExecutor.class);
     private final PriorityQueue<Runnable> queue;
     private final Set<Runnable> locked;
     private final ThreadFactory threadFactory;
+    private final Comparator<Runnable> comparator;
 
     public PriorityExecutor() {
         this(1, Thread::new);
@@ -26,14 +29,9 @@ public class PriorityExecutor {
                             ThreadFactory threadFactory,
                             Comparator<Runnable> comparator) {
         this.threadFactory = threadFactory;
-
-        this.queue = comparator != null
-                ? new PriorityQueue<>(comparator)
-                : new PriorityQueue<>();
-
-        this.locked = comparator != null
-                ? new TreeSet<>(comparator)
-                : new TreeSet<>();
+        this.comparator = comparator;
+        this.queue = new PriorityQueue<>();
+        this.locked = new TreeSet<>();
 
         initThreads(nThreads);
     }
@@ -75,27 +73,61 @@ public class PriorityExecutor {
         }
     }
 
-    public void execute(Runnable object) {
+    public CompletableFuture<Object> execute(Runnable object) {
         synchronized (queue) {
-            if (locked.add(object)) {
-                queue.add(object);
+            TaskWrapper wrapper = new TaskWrapper(object, new CompletableFuture<>());
+
+            if (locked.add(wrapper)) {
+                queue.add(wrapper);
                 queue.notifyAll();
+            } else {
+                wrapper.done();
+            }
+
+            return wrapper.future;
+        }
+    }
+
+    public CompletableFuture<Void> executeAll(Collection<? extends Runnable> objects) {
+        synchronized (queue) {
+
+            return CompletableFuture.allOf(
+                    objects.stream()
+                    .map(this::execute)
+                    .toArray(CompletableFuture[]::new));
+        }
+    }
+
+    class TaskWrapper implements Runnable, Comparable<TaskWrapper> {
+        final Runnable obj;
+        final CompletableFuture<Object> future;
+
+        TaskWrapper(Runnable obj, CompletableFuture<Object> future) {
+            this.obj = obj;
+            this.future = future;
+        }
+
+        @Override
+        public int compareTo(TaskWrapper o) {
+            if (comparator != null) {
+                return comparator.compare(obj, o.obj);
+            } else if (obj instanceof Comparable){
+                Comparable cmp = (Comparable) obj;
+                return cmp.compareTo(o.obj);
+            } else {
+                throw new IllegalArgumentException("no comparator assigned");
             }
         }
-    }
 
-    public void executeAll(Collection<? extends Runnable> objects) {
-        synchronized (queue) {
-            List<? extends Runnable> objectsFiltered = objects.stream()
-                    .filter(o -> !locked.contains(o))
-                    .collect(Collectors.toList());
+        @Override
+        public void run() {
+            obj.run();
+            done();
+        }
 
-            queue.addAll(objectsFiltered);
-            queue.notifyAll();
-
-            locked.addAll(objectsFiltered);
+        public void done() {
+            future.complete(null);
         }
     }
-
 
 }

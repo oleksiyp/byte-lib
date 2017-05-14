@@ -119,7 +119,8 @@ public class DailyTopApp {
                 perDayExecutor,
                 ofNullable(properties.getLimitLastDays()),
                 aggregator,
-                catAggregator);
+                catAggregator,
+                properties.getCloseAfterFetch());
     }
 
     @Bean
@@ -196,7 +197,7 @@ public class DailyTopApp {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext ctx = SpringApplication.run(DailyTopApp.class, args);
-        if (ctx.getBean(DailyTopServiceProperties.class).closeAfterFetch()) {
+        if (ctx.getBean(DailyTopServiceProperties.class).getCloseAfterFetch()) {
             ctx.close();
         }
     }
