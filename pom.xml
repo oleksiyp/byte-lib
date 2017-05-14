@@ -56,6 +56,17 @@
                             </resources>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>tag-image</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>tag</goal>
+                        </goals>
+                        <configuration>
+                            <image>${docker.image.prefix}/${project.artifactId}:${project.version}</image>
+                            <newName>${docker.image.prefix}/${project.artifactId}:latest</newName>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
