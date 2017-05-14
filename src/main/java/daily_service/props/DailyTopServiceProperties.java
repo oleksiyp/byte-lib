@@ -265,7 +265,7 @@ public class DailyTopServiceProperties {
         this.blackList = blackList;
     }
 
-    public boolean getCloseAfterFetch() {
+    public boolean isCloseAfterFetch() {
         return closeAfterFetch;
     }
 

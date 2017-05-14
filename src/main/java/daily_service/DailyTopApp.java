@@ -83,6 +83,7 @@ public class DailyTopApp {
                                            PageViewFetcher fetcher,
                                            WebsiteUploader uploader) {
         CustomizableThreadFactory threadFactory = new CustomizableThreadFactory("daily_top_service");
+        threadFactory.setDaemon(true);
 
         PriorityExecutor perDayExecutor = new PriorityExecutor(properties.getDownloadParallelism(), threadFactory);
 
@@ -120,7 +121,7 @@ public class DailyTopApp {
                 ofNullable(properties.getLimitLastDays()),
                 aggregator,
                 catAggregator,
-                properties.getCloseAfterFetch());
+                properties.isCloseAfterFetch());
     }
 
     @Bean
@@ -197,7 +198,7 @@ public class DailyTopApp {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext ctx = SpringApplication.run(DailyTopApp.class, args);
-        if (ctx.getBean(DailyTopServiceProperties.class).getCloseAfterFetch()) {
+        if (ctx.getBean(DailyTopServiceProperties.class).isCloseAfterFetch()) {
             ctx.close();
         }
     }
