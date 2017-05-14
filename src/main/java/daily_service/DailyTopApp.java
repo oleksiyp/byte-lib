@@ -198,7 +198,8 @@ public class DailyTopApp {
 
     public static void main(String[] args) {
         ConfigurableApplicationContext ctx = SpringApplication.run(DailyTopApp.class, args);
-        if (ctx.getBean(DailyTopServiceProperties.class).isCloseAfterFetch()) {
+        DailyTopServiceProperties properties = ctx.getBean(DailyTopServiceProperties.class);
+        if (properties.isCloseAfterFetch()) {
             ctx.close();
         }
     }
