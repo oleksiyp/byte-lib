@@ -9,6 +9,8 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ResponseBody;
 import dbpedia.DbpediaLookups;
+import news_service.News;
+import news_service.NewsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,13 +156,18 @@ public class PageView {
         return "--------";
     }
 
-    public PageView writeHourlyTopToJson(int k) {
+    public PageView readOrParse(int k) {
         File out = new File(getJsonOut());
         if (readHourlyJsonOut()) {
             return this;
         }
         LOG.info("Parsing {}", new File(file).getName());
         parseRecords(k);
+        return this;
+    }
+
+    public PageView write() {
+        File out = new File(getJsonOut());
         out.getParentFile().mkdirs();
         LOG.info("Writing top hourly {}", out);
         try {
@@ -255,6 +262,15 @@ public class PageView {
         }
         return this;
     }
+
+    public PageView addNews(NewsService newsService) {
+        topRecords.forEach(record -> {
+            List<News> news = newsService.search(record.getLabel(), 10, 10);
+            record.setNews(news);
+        });
+        return this;
+    }
+
 
     public PageView removeDownloaded() {
         new File(file).delete();

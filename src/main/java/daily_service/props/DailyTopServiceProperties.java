@@ -40,6 +40,12 @@ public class DailyTopServiceProperties {
     private boolean closeAfterFetch;
     private int minRecordsPerCategory;
     private int maxRecordsPerCategory;
+    private File newsApiCache;
+    private long newsApiCacheSize;
+    private int newsApiParallelism;
+    private String newsApiKey;
+    private File newsServiceStore;
+    private File newsServiceIndex;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -287,5 +293,53 @@ public class DailyTopServiceProperties {
 
     public void setMaxRecordsPerCategory(int maxRecordsPerCategory) {
         this.maxRecordsPerCategory = maxRecordsPerCategory;
+    }
+
+    public File getNewsApiCache() {
+        return newsApiCache;
+    }
+
+    public void setNewsApiCache(File newsApiCache) {
+        this.newsApiCache = newsApiCache;
+    }
+
+    public long getNewsApiCacheSize() {
+        return newsApiCacheSize;
+    }
+
+    public void setNewsApiCacheSize(long newsApiCacheSize) {
+        this.newsApiCacheSize = newsApiCacheSize;
+    }
+
+    public int getNewsApiParallelism() {
+        return newsApiParallelism;
+    }
+
+    public void setNewsApiParallelism(int newsApiParallelism) {
+        this.newsApiParallelism = newsApiParallelism;
+    }
+
+    public String getNewsApiKey() {
+        return newsApiKey;
+    }
+
+    public void setNewsApiKey(String newsApiKey) {
+        this.newsApiKey = newsApiKey;
+    }
+
+    public File getNewsServiceStore() {
+        return newsServiceStore;
+    }
+
+    public void setNewsServiceStore(File newsServiceStore) {
+        this.newsServiceStore = newsServiceStore;
+    }
+
+    public File getNewsServiceIndex() {
+        return newsServiceIndex;
+    }
+
+    public void setNewsServiceIndex(File newsServiceIndex) {
+        this.newsServiceIndex = newsServiceIndex;
     }
 }

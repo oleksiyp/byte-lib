@@ -6,6 +6,10 @@ import daily_service.props.DailyTopServiceProperties;
 import daily_service.props.GitWebsiteUploaderProperties;
 import dbpedia.*;
 import download.WikimediaDataSet;
+import news_api.NewsApiFetcher;
+import news_service.NewsFetcher;
+import news_service.NewsService;
+import news_service.NewsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,6 +26,8 @@ import wikipageviews.PageViewFetcher;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 
 import static java.util.Optional.ofNullable;
@@ -67,7 +73,7 @@ public class DailyTopApp {
     }
 
     @Bean
-    public PageViewFetcher fetcher(DbpediaLookups lookups) {
+    public PageViewFetcher fetcher(DbpediaLookups lookups, NewsService newsService) {
         OkHttpClient client = new OkHttpClient();
 
         return new PageViewFetcher(
@@ -75,7 +81,33 @@ public class DailyTopApp {
                 properties.getHourlyJsonDir(),
                 lookups,
                 client,
-                new BlackList(properties.getBlackList()));
+                new BlackList(properties.getBlackList()),
+                newsService);
+    }
+
+    @Bean
+    public NewsApiFetcher newsApiFetcher() {
+        Cache cache = new Cache(
+                properties.getNewsApiCache(),
+                properties.getNewsApiCacheSize());
+
+        OkHttpClient client = new OkHttpClient();
+        client.setCache(cache);
+
+        ExecutorService executor = Executors.newFixedThreadPool(
+                properties.getNewsApiParallelism()
+        );
+
+        return new NewsApiFetcher(client,
+                executor,
+                properties.getNewsApiKey(), new String[]{"top", "popular", "latest"});
+    }
+
+    @Bean
+    public NewsServiceImpl newsService(NewsFetcher fetcher) {
+        return new NewsServiceImpl(fetcher,
+                properties.getNewsServiceStore(),
+                properties.getNewsServiceIndex());
     }
 
     @Bean

@@ -1,5 +1,7 @@
 package wikipageviews;
 
+import news_service.News;
+
 import java.util.List;
 
 public class PageViewRecord {
@@ -12,6 +14,7 @@ public class PageViewRecord {
     private String label;
     private List<String> categories;
     private int position;
+    private List<News> news;
 
     public PageViewRecord() {
     }
@@ -117,5 +120,13 @@ public class PageViewRecord {
         } else {
             return pageViewRecord2;
         }
+    }
+
+    public void setNews(List<News> news) {
+        this.news = news;
+    }
+
+    public List<News> getNews() {
+        return news;
     }
 }

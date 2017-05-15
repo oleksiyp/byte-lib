@@ -2,6 +2,7 @@ package wikipageviews;
 
 import com.squareup.okhttp.OkHttpClient;
 import dbpedia.DbpediaLookups;
+import news_service.NewsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,17 +20,20 @@ public class PageViewFetcher {
     private final int topK;
     private final String hourlyJsonDir;
     private final BlackList blackList;
+    private final NewsService newsService;
 
     public PageViewFetcher(int topK,
                            String hourlyJsonDir,
                            DbpediaLookups lookups,
                            OkHttpClient downloadClient,
-                           BlackList blackList) {
+                           BlackList blackList,
+                           NewsService newsService) {
         this.topK = topK;
         this.hourlyJsonDir = hourlyJsonDir;
         this.lookups = lookups;
         this.downloadClient = downloadClient;
         this.blackList = blackList;
+        this.newsService = newsService;
     }
 
     public void processDay(String day, List<PageView> pageViews) throws IOException {
@@ -39,7 +43,9 @@ public class PageViewFetcher {
                 pageView.setLookups(lookups)
                         .setBlackList(blackList)
                         .download(downloadClient)
-                        .writeHourlyTopToJson(topK)
+                        .readOrParse(topK)
+                        .addNews(newsService)
+                        .write()
                         .removeDownloaded());
     }
 

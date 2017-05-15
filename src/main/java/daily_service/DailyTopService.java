@@ -1,6 +1,7 @@
 package daily_service;
 
 import download.WikimediaDataSet;
+import news_service.NewsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.PriorityExecutor;
