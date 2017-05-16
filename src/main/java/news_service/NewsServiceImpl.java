@@ -60,7 +60,7 @@ public class NewsServiceImpl implements NewsService, Runnable {
             news.stream()
                     .map(this::toDocument)
                     .forEach(doc -> {
-                        Term term = new Term("id", doc.get("url"));
+                        Term term = new Term("url", doc.get("url"));
                         try {
                             writer.updateDocument(term, doc);
                         } catch (IOException e) {
