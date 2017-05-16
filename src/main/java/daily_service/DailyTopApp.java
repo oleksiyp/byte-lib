@@ -158,7 +158,7 @@ public class DailyTopApp {
                 properties.isCloseAfterFetch(),
                 newsService,
                 properties.getNewsLimit(),
-                properties.getNewsDaysSimilarity());
+                properties.getNewsDaysSimiliarity());
     }
 
     @Bean

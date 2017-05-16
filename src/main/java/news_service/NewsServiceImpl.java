@@ -27,6 +27,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Stream.of;
+import static org.apache.lucene.search.BooleanClause.Occur.*;
 
 public class NewsServiceImpl implements NewsService, Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(NewsServiceImpl.class);
@@ -141,9 +142,9 @@ public class NewsServiceImpl implements NewsService, Runnable {
             Query dateFilter = NumericDocValuesField.newRangeQuery("fetchedAt", lowBound, highBound);
 
             Query query = new BooleanQuery.Builder()
-                    .add(new BooleanClause(queryDescription, BooleanClause.Occur.MUST))
-                    .add(new BooleanClause(queryTitle, BooleanClause.Occur.SHOULD))
-                    .add(new BooleanClause(dateFilter, BooleanClause.Occur.FILTER))
+                    .add(new BooleanClause(queryDescription, SHOULD))
+                    .add(new BooleanClause(queryTitle, SHOULD))
+                    .add(new BooleanClause(dateFilter, FILTER))
                     .build();
 
             TopDocs top = searcher.search(query, limit);

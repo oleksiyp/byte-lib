@@ -62,6 +62,7 @@ public class DailyTopService {
         this.catAggregator = catAggregator;
         this.waitFetchOnInit = waitFetchOnInit;
         this.newsService = newsService;
+
         this.newsLimit = newsLimit;
         this.newsDaysSimilarity = newsDaysSimilarity;
     }
@@ -161,7 +162,8 @@ public class DailyTopService {
         public void run() {
             try {
                 fetcher.processDay(day, pageViews);
-                pageViews.forEach(pageView -> pageView.searchForNews(newsService, newsLimit, newsDaysSimilarity));
+                pageViews.forEach(pageView ->
+                        pageView.searchForNews(newsService, newsLimit, newsDaysSimilarity));
                 aggregator.aggregate(day, pageViews);
                 catAggregator.aggregate(day, pageViews);
                 dailyNotifier.accept(day);
