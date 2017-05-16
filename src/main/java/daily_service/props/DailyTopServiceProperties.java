@@ -46,6 +46,7 @@ public class DailyTopServiceProperties {
     private String newsApiKey;
     private File newsServiceStore;
     private File newsServiceIndex;
+    private boolean newsServiceReindex;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -341,5 +342,17 @@ public class DailyTopServiceProperties {
 
     public void setNewsServiceIndex(File newsServiceIndex) {
         this.newsServiceIndex = newsServiceIndex;
+    }
+
+    public boolean getNewsServiceReindex() {
+        return newsServiceReindex;
+    }
+
+    public boolean isNewsServiceReindex() {
+        return newsServiceReindex;
+    }
+
+    public void setNewsServiceReindex(boolean newsServiceReindex) {
+        this.newsServiceReindex = newsServiceReindex;
     }
 }

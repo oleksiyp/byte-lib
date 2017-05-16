@@ -107,7 +107,8 @@ public class DailyTopApp {
     public NewsServiceImpl newsService(NewsFetcher fetcher) {
         return new NewsServiceImpl(fetcher,
                 properties.getNewsServiceStore(),
-                properties.getNewsServiceIndex());
+                properties.getNewsServiceIndex(),
+                properties.getNewsServiceReindex());
     }
 
     @Bean

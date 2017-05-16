@@ -1,6 +1,7 @@
 package news_service;
 
 import byte_lib.io.ByteFiles;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
@@ -10,9 +11,12 @@ import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.SimpleFSDirectory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
@@ -23,18 +27,25 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static java.lang.Long.MAX_VALUE;
+import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Stream.of;
 
 public class NewsServiceImpl implements NewsService, Runnable {
+    private static final Logger LOG = LoggerFactory.getLogger(NewsServiceImpl.class);
+
     private final NewsFetcher fetcher;
     private final File newsStoreDir;
+    private boolean reindexAtStart;
     private final Directory newsIndexDir;
     private final Analyzer analyzer;
     private final StandardQueryParser queryParser;
 
-    public NewsServiceImpl(NewsFetcher fetcher, File newsStoreDir, File newsIndexDir) {
+    public NewsServiceImpl(NewsFetcher fetcher, File newsStoreDir, File newsIndexDir, boolean reindexAtStart) {
         this.fetcher = fetcher;
         this.newsStoreDir = newsStoreDir;
+        this.reindexAtStart = reindexAtStart;
         try {
             this.newsIndexDir = new SimpleFSDirectory(newsIndexDir.toPath());
         } catch (IOException e) {
@@ -46,7 +57,45 @@ public class NewsServiceImpl implements NewsService, Runnable {
 
     @PostConstruct
     public void init() {
+        if (reindexAtStart) {
+            reindex();
+        }
         run();
+    }
+
+    public void reindex() {
+        File[] jsons = ofNullable(newsStoreDir.listFiles(
+                (File dir, String file) ->
+                        file.matches("news-.+\\.json.*")))
+                .orElse(new File[0]);
+
+        LOG.info("Reindexing {} files", jsons.length);
+        Set<News> news = of(jsons)
+                .flatMap(file -> {
+                    try {
+                        Object newsSet = new ObjectMapper().readValue(file, new TypeReference<Set<News>>() {
+                        });
+                        return ((Set<News>) newsSet).stream();
+                    } catch (IOException e) {
+                        throw new IOError(e);
+                    }
+                }).collect(toSet());
+
+        LOG.info("Reindexing {} news", news.size());
+
+        try {
+            for (String name : newsIndexDir.listAll()) {
+                try {
+                    newsIndexDir.deleteFile(name);
+                } catch (IOException e) {
+                    // skip
+                }
+            }
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
+
+        index(news);
     }
 
     public void run() {
@@ -99,7 +148,7 @@ public class NewsServiceImpl implements NewsService, Runnable {
                     .build();
 
             TopDocs top = searcher.search(query, limit);
-            return Stream.of(top.scoreDocs)
+            return of(top.scoreDocs)
                     .map(doc -> {
                         try {
                             return toNews(reader.document(doc.doc), doc.score);
