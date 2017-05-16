@@ -21,10 +21,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -156,6 +155,15 @@ public class PageView {
         return "--------";
     }
 
+    public Date getDate() {
+        try {
+            String day = getDay();
+            return new SimpleDateFormat("YYYYMMdd").parse(day);
+        } catch (ParseException e) {
+            return new Date(0);
+        }
+    }
+
     public PageView readOrParse(int k) {
         File out = new File(getJsonOut());
         if (readHourlyJsonOut()) {
@@ -263,9 +271,13 @@ public class PageView {
         return this;
     }
 
-    public PageView addNews(NewsService newsService) {
+    public PageView searchForNews(NewsService newsService, int limit, int daysSimilarity) {
         topRecords.forEach(record -> {
-            List<News> news = newsService.search(record.getLabel(), 10, 10);
+            List<News> news = newsService.search(
+                    record.getLabel(),
+                    limit,
+                    daysSimilarity,
+                    getDate());
             record.setNews(news);
         });
         return this;

@@ -16,7 +16,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -37,6 +36,9 @@ public class DailyTopService {
     private final DailyCatTopAggregator catAggregator;
     private boolean waitFetchOnInit;
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMdd");
+    private final NewsService newsService;
+    private final int newsLimit;
+    private final int newsDaysSimilarity;
 
     public DailyTopService(WikimediaDataSet dataSet,
                            PageViewFetcher fetcher,
@@ -45,7 +47,10 @@ public class DailyTopService {
                            Optional<Integer> limitLastDays,
                            DailyTopAggregator aggregator,
                            DailyCatTopAggregator catAggregator,
-                           boolean waitFetchOnInit) {
+                           boolean waitFetchOnInit,
+                           NewsService newsService,
+                           int newsLimit,
+                           int newsDaysSimilarity) {
         this.dataSet = dataSet;
         this.fetcher = fetcher;
         this.dailyNotifier = dailyNotifier;
@@ -56,6 +61,9 @@ public class DailyTopService {
         this.aggregator = aggregator;
         this.catAggregator = catAggregator;
         this.waitFetchOnInit = waitFetchOnInit;
+        this.newsService = newsService;
+        this.newsLimit = newsLimit;
+        this.newsDaysSimilarity = newsDaysSimilarity;
     }
 
     @PostConstruct
@@ -153,6 +161,7 @@ public class DailyTopService {
         public void run() {
             try {
                 fetcher.processDay(day, pageViews);
+                pageViews.forEach(pageView -> pageView.searchForNews(newsService, newsLimit, newsDaysSimilarity));
                 aggregator.aggregate(day, pageViews);
                 catAggregator.aggregate(day, pageViews);
                 dailyNotifier.accept(day);

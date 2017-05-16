@@ -47,6 +47,8 @@ public class DailyTopServiceProperties {
     private File newsServiceStore;
     private File newsServiceIndex;
     private boolean newsServiceReindex;
+    private int newsLimit;
+    private int newsDaysSimilarity;
 
     public List<GitWebsiteUploaderProperties> getGit() {
         return git;
@@ -354,5 +356,21 @@ public class DailyTopServiceProperties {
 
     public void setNewsServiceReindex(boolean newsServiceReindex) {
         this.newsServiceReindex = newsServiceReindex;
+    }
+
+    public int getNewsLimit() {
+        return newsLimit;
+    }
+
+    public void setNewsLimit(int newsLimit) {
+        this.newsLimit = newsLimit;
+    }
+
+    public int getNewsDaysSimilarity() {
+        return newsDaysSimilarity;
+    }
+
+    public void setNewsDaysSimilarity(int newsDaysSimilarity) {
+        this.newsDaysSimilarity = newsDaysSimilarity;
     }
 }

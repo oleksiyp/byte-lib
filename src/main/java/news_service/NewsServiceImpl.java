@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Optional.ofNullable;
@@ -131,16 +130,19 @@ public class NewsServiceImpl implements NewsService, Runnable {
     }
 
     @Override
-    public List<News> search(String queryStr, int limit, int nDays) {
+    public List<News> search(String queryStr, int limit, int daysSimilarity, Date date) {
         try (IndexReader reader = DirectoryReader.open(newsIndexDir)) {
             IndexSearcher searcher = new IndexSearcher(reader);
-            Query query = queryParser.parse(queryStr, "description");
+            Query queryDescription = queryParser.parse(queryStr, "description");
+            Query queryTitle = queryParser.parse(queryStr, "title");
 
-            long lowBound = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(nDays);
-            Query dateFilter = NumericDocValuesField.newRangeQuery("fetchedAt", lowBound, MAX_VALUE);
+            long lowBound = date.getTime() - TimeUnit.DAYS.toMillis(daysSimilarity);
+            long highBound = date.getTime() + TimeUnit.DAYS.toMillis(daysSimilarity);
+            Query dateFilter = NumericDocValuesField.newRangeQuery("fetchedAt", lowBound, highBound);
 
-            query = new BooleanQuery.Builder()
-                    .add(new BooleanClause(query, BooleanClause.Occur.MUST))
+            Query query = new BooleanQuery.Builder()
+                    .add(new BooleanClause(queryDescription, BooleanClause.Occur.MUST))
+                    .add(new BooleanClause(queryTitle, BooleanClause.Occur.SHOULD))
                     .add(new BooleanClause(dateFilter, BooleanClause.Occur.FILTER))
                     .build();
 

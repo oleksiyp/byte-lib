@@ -81,8 +81,8 @@ public class DailyTopApp {
                 properties.getHourlyJsonDir(),
                 lookups,
                 client,
-                new BlackList(properties.getBlackList()),
-                newsService);
+                new BlackList(properties.getBlackList())
+        );
     }
 
     @Bean
@@ -114,7 +114,8 @@ public class DailyTopApp {
     @Bean
     public DailyTopService dailyTopService(WikimediaDataSet dataSet,
                                            PageViewFetcher fetcher,
-                                           WebsiteUploader uploader) {
+                                           WebsiteUploader uploader,
+                                           NewsService newsService) {
         CustomizableThreadFactory threadFactory = new CustomizableThreadFactory("daily_top_service");
         threadFactory.setDaemon(true);
 
@@ -154,7 +155,10 @@ public class DailyTopApp {
                 ofNullable(properties.getLimitLastDays()),
                 aggregator,
                 catAggregator,
-                properties.isCloseAfterFetch());
+                properties.isCloseAfterFetch(),
+                newsService,
+                properties.getNewsLimit(),
+                properties.getNewsDaysSimilarity());
     }
 
     @Bean

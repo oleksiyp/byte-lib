@@ -20,20 +20,17 @@ public class PageViewFetcher {
     private final int topK;
     private final String hourlyJsonDir;
     private final BlackList blackList;
-    private final NewsService newsService;
 
     public PageViewFetcher(int topK,
                            String hourlyJsonDir,
                            DbpediaLookups lookups,
                            OkHttpClient downloadClient,
-                           BlackList blackList,
-                           NewsService newsService) {
+                           BlackList blackList) {
         this.topK = topK;
         this.hourlyJsonDir = hourlyJsonDir;
         this.lookups = lookups;
         this.downloadClient = downloadClient;
         this.blackList = blackList;
-        this.newsService = newsService;
     }
 
     public void processDay(String day, List<PageView> pageViews) throws IOException {
@@ -44,7 +41,6 @@ public class PageViewFetcher {
                         .setBlackList(blackList)
                         .download(downloadClient)
                         .readOrParse(topK)
-                        .addNews(newsService)
                         .write()
                         .removeDownloaded());
     }
