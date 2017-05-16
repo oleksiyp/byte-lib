@@ -15,10 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
-import java.io.IOError;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -72,8 +69,8 @@ public class NewsServiceImpl implements NewsService, Runnable {
         LOG.info("Reindexing {} files", jsons.length);
         Set<News> news = of(jsons)
                 .flatMap(file -> {
-                    try {
-                        Object newsSet = new ObjectMapper().readValue(file, new TypeReference<Set<News>>() {
+                    try (InputStream in = ByteFiles.inputStream(file)) {
+                        Object newsSet = new ObjectMapper().readValue(in, new TypeReference<Set<News>>() {
                         });
                         return ((Set<News>) newsSet).stream();
                     } catch (IOException e) {
