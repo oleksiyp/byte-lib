@@ -223,9 +223,10 @@ public class DailyCatTopAggregator {
         }
 
         private Double searchCategory(PageViewRecordCategory cat) {
-            List<News> list = newsService.search(cat.getCategory(), 1, 0, null);
-            return ofNullable(list.isEmpty() ? null: list.get(0))
+            return newsService.search(cat.getCategory(), 1, 0, null)
+                    .stream()
                     .map(News::getScore)
+                    .findFirst()
                     .orElse(0.0f)
                     .doubleValue();
         }
