@@ -140,7 +140,8 @@ public class DailyTopApp {
                 properties.getDailyCatJsonDir(),
                 properties.getTopKCategories(),
                 properties.getMinRecordsPerCategory(),
-                properties.getMaxRecordsPerCategory());
+                properties.getMaxRecordsPerCategory(),
+                newsService);
 
         return new DailyTopService(dataSet,
                 fetcher,

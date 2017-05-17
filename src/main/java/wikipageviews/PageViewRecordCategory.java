@@ -14,6 +14,12 @@ public class PageViewRecordCategory {
     private List<PageViewRecord> records;
     private double score;
 
+    public PageViewRecordCategory() {
+        this.lang = "";
+        this.category = "";
+        this.records = new ArrayList<>();
+    }
+
     public PageViewRecordCategory(String langCategory) {
         int idx = langCategory.indexOf(" ");
         this.lang = idx != -1 ? langCategory.substring(0, idx) : "en";

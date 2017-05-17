@@ -134,17 +134,22 @@ public class NewsServiceImpl implements NewsService, Runnable {
     public List<News> search(String queryStr, int limit, int daysSimilarity, Date date) {
         try (IndexReader reader = DirectoryReader.open(newsIndexDir)) {
             IndexSearcher searcher = new IndexSearcher(reader);
+
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+
+            if (date != null) {
+                long lowBound = date.getTime() - TimeUnit.DAYS.toMillis(daysSimilarity);
+                long highBound = date.getTime() + TimeUnit.DAYS.toMillis(daysSimilarity);
+                Query dateFilter = NumericDocValuesField.newRangeQuery("fetchedAt", lowBound, highBound);
+                builder.add(new BooleanClause(dateFilter, FILTER));
+            }
+
             Query queryDescription = queryParser.parse(queryStr, "description");
             Query queryTitle = queryParser.parse(queryStr, "title");
 
-            long lowBound = date.getTime() - TimeUnit.DAYS.toMillis(daysSimilarity);
-            long highBound = date.getTime() + TimeUnit.DAYS.toMillis(daysSimilarity);
-            Query dateFilter = NumericDocValuesField.newRangeQuery("fetchedAt", lowBound, highBound);
-
-            Query query = new BooleanQuery.Builder()
+            Query query = builder
                     .add(new BooleanClause(queryDescription, SHOULD))
                     .add(new BooleanClause(queryTitle, SHOULD))
-                    .add(new BooleanClause(dateFilter, FILTER))
                     .build();
 
             TopDocs top = searcher.search(query, limit);
