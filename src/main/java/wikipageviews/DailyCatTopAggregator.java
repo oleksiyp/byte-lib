@@ -7,8 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOError;
-import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -17,7 +15,7 @@ import static java.lang.Math.max;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
-import static java.util.Optional.ofNullable;
+import static util.IOUtils.wrapIOException;
 import static wikipageviews.PageViewRecordCategory.OTHER_CATEGORY;
 
 public class DailyCatTopAggregator {
@@ -49,24 +47,37 @@ public class DailyCatTopAggregator {
         Aggregator aggregator = new Aggregator(pageViews);
         aggregator.run();
 
-        String fileName = getOutFile(day);
-        LOG.info("Writing top hourly records {}", fileName);
-        try {
-            File resultFile = new File(fileName);
-            resultFile.getParentFile().mkdirs();
-            new ObjectMapper().writeValue(resultFile, aggregator.resultCats);
-        } catch (IOException ex) {
-            throw new IOError(ex);
+        for (PageViewRecordCategory category : aggregator.resultCats) {
+            for (PageViewRecord record : category.getRecords()) {
+                String resource = record.getResource();
+                List<News> news = record.getNews();
+
+                LOG.info("Writing news for {} on {}", resource, day);
+                File outFile = getNewsOutFile(day, resource);
+                outFile.getParentFile().mkdirs();
+                wrapIOException(() -> new ObjectMapper().writeValue(outFile, news));
+                record.setNews(null);
+            }
         }
+
+        LOG.info("Writing top hourly records {}", getOutFile(day));
+        File outFile = getOutFile(day);
+        outFile.getParentFile().mkdirs();
+        wrapIOException(() ->
+            new ObjectMapper().writeValue(outFile, aggregator.resultCats));
 
     }
 
-    public String getOutFile(String day) {
-        return outDir + "/" + day + ".json";
+    private File getNewsOutFile(String day, String resource) {
+        return new File(outDir + "/" + day + "/" + resource + ".json");
+    }
+
+    public File getOutFile(String day) {
+        return new File(outDir + "/" + day + ".json");
     }
 
     public boolean hasOutFile(String day) {
-        return new File(getOutFile(day)).isFile();
+        return getOutFile(day).isFile();
     }
 
     private class Aggregator implements Runnable {
