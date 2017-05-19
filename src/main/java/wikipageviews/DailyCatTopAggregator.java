@@ -16,7 +16,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
 import static util.IOUtils.wrapIOException;
-import static wikipageviews.PageViewRecordCategory.OTHER_CATEGORY;
 
 public class DailyCatTopAggregator {
     private static final Logger LOG = LoggerFactory.getLogger(DailyCatTopAggregator.class);
@@ -49,13 +48,14 @@ public class DailyCatTopAggregator {
 
         for (PageViewRecordCategory category : aggregator.resultCats) {
             for (PageViewRecord record : category.getRecords()) {
-                String resource = record.getResource();
+                int position = record.getPosition();
                 List<News> news = record.getNews();
 
-                LOG.info("Writing news for {} on {}", resource, day);
-                File outFile = getNewsOutFile(day, resource);
+                LOG.info("Writing news for '{}' on {}", record.getLabel(), day);
+                File outFile = getNewsOutFile(day, position);
                 outFile.getParentFile().mkdirs();
                 wrapIOException(() -> new ObjectMapper().writeValue(outFile, news));
+                record.setNewsCount(news.size());
                 record.setNews(null);
             }
         }
@@ -68,8 +68,8 @@ public class DailyCatTopAggregator {
 
     }
 
-    private File getNewsOutFile(String day, String resource) {
-        return new File(outDir + "/" + day + "/" + resource + ".json");
+    private File getNewsOutFile(String day, int position) {
+        return new File(outDir + "/" + day + "/" + position + ".json");
     }
 
     public File getOutFile(String day) {
@@ -89,7 +89,6 @@ public class DailyCatTopAggregator {
         private List<PageViewRecordCategory> cats;
 
         private Set<PageViewRecord> categorizedRecords;
-        private List<PageViewRecordCategory> sameScoreCategories;
         private PageViewRecordCategory topCategory;
 
         private List<PageViewRecordCategory> resultCats;
@@ -101,13 +100,29 @@ public class DailyCatTopAggregator {
         public void run(){
             mergeAndDeduplicate();
             groupCategories();
+            newsScore();
             scoreAndSortCats();
             selectTopCategories();
             addRestCategory();
         }
 
+        private void newsScore() {
+            for (PageViewRecord record : records) {
+                record.setScore(record.getScore() * scoreByNews(record));
+            }
+
+            for (PageViewRecordCategory category : cats) {
+                category.setNewsScore(scoreByNews(category));
+            }
+
+            records.sort(comparing(PageViewRecord::getScore).reversed());
+            for (int i = 0; i < records.size(); i++) {
+                records.get(i).setPosition(i);
+            }
+        }
+
         private void addRestCategory() {
-            PageViewRecordCategory restCat = new PageViewRecordCategory(OTHER_CATEGORY);
+            PageViewRecordCategory restCat = new PageViewRecordCategory();
             restCat.addAll(records.stream()
                     .filter(pvr -> !categorizedRecords.contains(pvr))
                     .sorted(comparing(PageViewRecord::getScore).reversed())
@@ -127,9 +142,7 @@ public class DailyCatTopAggregator {
 
                 addSpareCategory();
 
-                removeSameScoredTopCategories();
-                selectTopByNews();
-
+                topCategory = cats.remove(0);
                 topCategory.cutRecords(maxRecordsPerCategory, topK);
                 if (topCategory.getRecords().size() < minRecordsPerCategory) {
                     scoreAndSortCats();
@@ -147,25 +160,15 @@ public class DailyCatTopAggregator {
                     .collect(Collectors.toSet());
         }
 
-        private void removeSameScoredTopCategories() {
-            PageViewRecordCategory topCategory = cats.remove(0);
-            List<PageViewRecordCategory> sameScoreCategory = new ArrayList<>();
-            while (!cats.isEmpty() &&
-                    cats.get(0).getScoreRounded() == topCategory.getScoreRounded()) {
-                sameScoreCategory.add(cats.remove(0));
-            }
-            sameScoreCategory.add(topCategory);
-            sameScoreCategories = sameScoreCategory;
-        }
-
         private void addSpareCategory() {
-            PageViewRecordCategory spareCategory = new PageViewRecordCategory("");
+            PageViewRecordCategory spareCategory = new PageViewRecordCategory();
             while (!records.isEmpty()) {
 
                 PageViewRecord topRecord = records.get(0);
                 PageViewRecordCategory topCat = cats.get(0);
 
-                if (topRecord.getScore() < topCat.getScore()) {
+                if (topCat.getRecords().isEmpty() ||
+                        topRecord.getScore() - 1e-8 <= topCat.getRecords().get(0).getScore()) {
                     break;
                 }
 
@@ -183,13 +186,14 @@ public class DailyCatTopAggregator {
             }
         }
 
-        private void removeRecords(List<PageViewRecord> records) {
-            Set<PageViewRecord> topRecords = new HashSet<>(records);
+        private void removeRecords(List<PageViewRecord> recordsToRemove) {
+            Set<PageViewRecord> topRecords = new HashSet<>(recordsToRemove);
             cats.forEach(cat -> cat.getRecords().removeAll(topRecords));
             records.removeAll(topRecords);
         }
 
         private void scoreAndSortCats() {
+            cats.forEach(PageViewRecordCategory::sortRecords);
             cats.forEach(PageViewRecordCategory::scoreRecords);
             cats.sort(TOP_CATEGORIES_COMPARATOR);
         }
@@ -211,34 +215,31 @@ public class DailyCatTopAggregator {
         }
 
         private void mergeAndDeduplicate() {
-            records = pageViews.stream()
+            records = new ArrayList<>(pageViews.stream()
                     .map(PageView::getTopRecords)
                     .flatMap(Collection::stream)
                     .collect(Collectors.toMap(
                             PageViewRecord::getLangResource,
                             Function.identity(),
                             PageViewRecord::selectTopPageView))
-                    .values()
-                    .stream()
-                    .sorted(comparing(PageViewRecord::getScore).reversed())
-                    .collect(Collectors.toList());
-
-            for (int i = 0; i < records.size(); i++) {
-                records.get(i).setPosition(i);
-            }
+                    .values());
         }
 
-        private void selectTopByNews() {
-            sameScoreCategories.sort(comparing(this::searchCategory).reversed());
-            topCategory = sameScoreCategories.get(0);
-        }
-
-        private Double searchCategory(PageViewRecordCategory cat) {
+        private Double scoreByNews(PageViewRecordCategory cat) {
             return newsService.search(cat.getCategory(), 1, 0, null)
                     .stream()
                     .map(News::getScore)
                     .findFirst()
-                    .orElse(0.0f)
+                    .orElse(1.0f)
+                    .doubleValue();
+        }
+
+        private Double scoreByNews(PageViewRecord record) {
+            return newsService.search(record.getLabel(), 1, 0, null)
+                    .stream()
+                    .map(News::getScore)
+                    .findFirst()
+                    .orElse(1.0f)
                     .doubleValue();
         }
     }

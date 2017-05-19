@@ -4,11 +4,15 @@ import byte_lib.io.ByteFiles;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.*;
+import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.*;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.SimpleFSDirectory;
 import org.slf4j.Logger;
@@ -22,7 +26,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static java.lang.Long.MAX_VALUE;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -144,11 +147,11 @@ public class NewsServiceImpl implements NewsService, Runnable {
                 builder.add(new BooleanClause(dateFilter, FILTER));
             }
 
-            Query queryDescription = queryParser.parse(queryStr, "description");
-            Query queryTitle = queryParser.parse(queryStr, "title");
+            Query queryDescription = parse("description", queryStr);
+            Query queryTitle = parse("title", queryStr);
 
             Query query = builder
-                    .add(new BooleanClause(queryDescription, SHOULD))
+                    .add(new BooleanClause(queryDescription, MUST))
                     .add(new BooleanClause(queryTitle, SHOULD))
                     .build();
 
@@ -165,6 +168,26 @@ public class NewsServiceImpl implements NewsService, Runnable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Query parse(String field, String queryStr) throws QueryNodeException {
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        try (TokenStream tokens = analyzer.tokenStream(field, queryStr)) {
+            CharTermAttribute termAttr = tokens.getAttribute(CharTermAttribute.class);
+            tokens.reset();
+            while (tokens.incrementToken()) {
+                if (!tokens.hasAttribute(CharTermAttribute.class)) {
+                    continue;
+                }
+                Term term = new Term(field, termAttr.toString());
+                TermQuery termQuery = new TermQuery(term);
+                builder.add(new BooleanClause(termQuery, MUST));
+            }
+            tokens.end();
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
+        return builder.build();
     }
 
     private Document toDocument(News news) {

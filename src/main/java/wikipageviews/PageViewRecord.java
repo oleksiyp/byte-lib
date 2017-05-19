@@ -15,6 +15,7 @@ public class PageViewRecord {
     private List<String> categories;
     private int position;
     private List<News> news;
+    private int newsCount;
 
     public PageViewRecord() {
     }
@@ -129,4 +130,14 @@ public class PageViewRecord {
     public List<News> getNews() {
         return news;
     }
+
+
+    public int getNewsCount() {
+        return newsCount;
+    }
+
+    public void setNewsCount(int newsCount) {
+        this.newsCount = newsCount;
+    }
+
 }

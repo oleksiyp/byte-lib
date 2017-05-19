@@ -161,7 +161,7 @@ public class PageView {
                     new File(file).getName());
             if (matcher.matches()) {
                 String day = matcher.group(1) + "T" + matcher.group(2);
-                return new SimpleDateFormat("YYYYMMdd'T'hhmmss").parse(day);
+                return new SimpleDateFormat("yyyyMMdd'T'hhmmss").parse(day);
             }
         } catch (ParseException e) {
             // skip

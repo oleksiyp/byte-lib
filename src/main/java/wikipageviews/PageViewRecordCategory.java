@@ -7,12 +7,11 @@ import java.util.stream.Collectors;
 import static java.util.Comparator.comparing;
 
 public class PageViewRecordCategory {
-    public static final String OTHER_CATEGORY = "en Other";
-
     private final String category;
     private final String lang;
     private List<PageViewRecord> records;
     private double score;
+    private double newsScore;
 
     public PageViewRecordCategory() {
         this.lang = "";
@@ -39,10 +38,6 @@ public class PageViewRecordCategory {
         return category;
     }
 
-    public void sortRecords() {
-        records.sort(comparing(PageViewRecord::getScore));
-    }
-
     public List<PageViewRecord> getRecords() {
         return records;
     }
@@ -61,16 +56,27 @@ public class PageViewRecordCategory {
 
     public void cutRecords(int maxSize, int maxPosition) {
         records = records.stream()
-                .sorted(comparing(PageViewRecord::getScore).reversed())
                 .filter(pvr -> pvr.getPosition() < maxPosition)
                 .limit(maxSize)
                 .collect(Collectors.toList());
+    }
+
+    public void sortRecords() {
+        records.sort(comparing(PageViewRecord::getScore).reversed());
     }
 
     public void scoreRecords() {
         score = records.stream()
                 .mapToDouble(PageViewRecord::getScore)
                 .average()
-                .orElse(0) * Math.log(records.size());
+                .orElse(0) * Math.log(records.size()) * newsScore;
+    }
+
+    public void setNewsScore(double newsScore) {
+        this.newsScore = newsScore;
+    }
+
+    public double getNewsScore() {
+        return newsScore;
     }
 }
