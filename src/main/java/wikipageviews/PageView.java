@@ -282,7 +282,7 @@ public class PageView {
                     record.getLabel(),
                     limit,
                     daysSimilarity,
-                    getDate());
+                    getDate(), true);
             record.setNews(news);
         });
         return this;

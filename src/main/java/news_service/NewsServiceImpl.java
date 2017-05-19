@@ -149,7 +149,7 @@ public class NewsServiceImpl implements NewsService, Runnable {
     }
 
     @Override
-    public List<News> search(String queryStr, int limit, int daysSimilarity, Date date) {
+    public List<News> search(String queryStr, int limit, int daysSimilarity, Date date, boolean allPhrase) {
         try {
             DirectoryReader reader = readerRef.get();
             IndexSearcher searcher = new IndexSearcher(reader);
@@ -163,8 +163,8 @@ public class NewsServiceImpl implements NewsService, Runnable {
                 builder.add(new BooleanClause(dateFilter, FILTER));
             }
 
-            Query queryDescription = parse("description", queryStr);
-            Query queryTitle = parse("title", queryStr);
+            Query queryDescription = parse("description", queryStr, allPhrase ? MUST : SHOULD);
+            Query queryTitle = parse("title", queryStr, allPhrase ? MUST : SHOULD);
 
             Query query = builder
                     .add(new BooleanClause(queryDescription, MUST))
@@ -186,7 +186,7 @@ public class NewsServiceImpl implements NewsService, Runnable {
         }
     }
 
-    private Query parse(String field, String queryStr) throws QueryNodeException {
+    private Query parse(String field, String queryStr, BooleanClause.Occur occur) throws QueryNodeException {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         try (TokenStream tokens = analyzer.tokenStream(field, queryStr)) {
             CharTermAttribute termAttr = tokens.getAttribute(CharTermAttribute.class);
@@ -197,7 +197,7 @@ public class NewsServiceImpl implements NewsService, Runnable {
                 }
                 Term term = new Term(field, termAttr.toString());
                 TermQuery termQuery = new TermQuery(term);
-                builder.add(new BooleanClause(termQuery, MUST));
+                builder.add(new BooleanClause(termQuery, occur));
             }
             tokens.end();
         } catch (IOException e) {

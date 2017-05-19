@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.Math.E;
-import static java.lang.Math.log;
 import static java.lang.Math.max;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
@@ -108,11 +107,25 @@ public class DailyCatTopAggregator {
 
         public void run(){
             mergeAndDeduplicate();
-            groupCategories();
             newsScore();
+            groupCategories();
+            newsScoreGroups();
             scoreAndSortCats();
+            for (PageViewRecordCategory cat : cats) {
+                System.out.printf("%6d %4d %6.2f %s%n",
+                        cat.getScoreRounded(),
+                        cat.getRecords().size(),
+                        cat.getNewsScore(),
+                        cat.getCategory());
+            }
             selectTopCategories();
             addRestCategory();
+        }
+
+        private void newsScoreGroups() {
+            for (PageViewRecordCategory cat : cats) {
+                cat.setNewsScore(scoreByNews(cat));
+            }
         }
 
         private void newsScore() {
@@ -122,24 +135,29 @@ public class DailyCatTopAggregator {
                                 .stream()
                                 .map(News::getScore)
                                 .mapToDouble(Float::doubleValue)
-                                .limit(2)
-                                .sum() + E;
+                                .findFirst()
+                                .orElse(0) + 1.0;
 
-                record.setScore(record.getScore() * log(log(newsScore)));
+                record.setScore(record.getScore() * newsScore);
             }
 
-            for (PageViewRecordCategory category : cats) {
-                double score = log(log(scoreByNews(category)) + E);
-                category.setNewsScore(score);
-            }
+            records = records.stream()
+                    .sorted(comparing(PageViewRecord::getScore).reversed())
+                    .limit(topK)
+                    .collect(toList());
 
-            records.sort(comparing(PageViewRecord::getScore).reversed());
             for (int i = 0; i < records.size(); i++) {
                 records.get(i).setPosition(i);
             }
         }
 
         private void addRestCategory() {
+            cats = new ArrayList<>(resultCats);
+            resultCats = new ArrayList<>();
+            while (!cats.isEmpty()) {
+                addSpareCategory();
+                resultCats.add(cats.remove(0));
+            }
             PageViewRecordCategory restCat = new PageViewRecordCategory();
             restCat.addAll(records.stream()
                     .filter(pvr -> !categorizedRecords.contains(pvr))
@@ -154,12 +172,6 @@ public class DailyCatTopAggregator {
         private void selectTopCategories() {
             resultCats = new ArrayList<>();
             while (!cats.isEmpty()) {
-                if (resultCats.size() >= topKCategories) {
-                    break;
-                }
-
-                addSpareCategory();
-
                 topCategory = cats.remove(0);
                 topCategory.cutRecords(maxRecordsPerCategory, topK);
                 if (topCategory.getRecords().size() < minRecordsPerCategory) {
@@ -168,10 +180,12 @@ public class DailyCatTopAggregator {
                 }
 
                 resultCats.add(topCategory);
-
                 removeRecords(topCategory.getRecords());
                 scoreAndSortCats();
             }
+
+            resultCats.sort(comparing((PageViewRecordCategory cat) ->
+                    cat.getRecords().get(0).getScore()).reversed());
 
             categorizedRecords = resultCats.stream()
                     .flatMap((cat) -> cat.getRecords().stream())
@@ -181,7 +195,6 @@ public class DailyCatTopAggregator {
         private void addSpareCategory() {
             PageViewRecordCategory spareCategory = new PageViewRecordCategory();
             while (!records.isEmpty()) {
-
                 PageViewRecord topRecord = records.get(0);
                 PageViewRecordCategory topCat = cats.get(0);
 
@@ -191,8 +204,6 @@ public class DailyCatTopAggregator {
                 }
 
                 removeRecords(singletonList(topRecord));
-
-                scoreAndSortCats();
                 spareCategory.getRecords().add(topRecord);
             }
 
@@ -212,7 +223,7 @@ public class DailyCatTopAggregator {
 
         private void scoreAndSortCats() {
             cats.forEach(PageViewRecordCategory::sortRecords);
-            cats.forEach(PageViewRecordCategory::scoreRecords);
+            cats.forEach(pvc -> pvc.scoreRecords(maxRecordsPerCategory, topK));
             cats.sort(comparingInt(PageViewRecordCategory::getScoreRounded).reversed());
         }
 
@@ -229,7 +240,10 @@ public class DailyCatTopAggregator {
             });
 
 
-            cats = new ArrayList<>(groupedPerCategory.values());
+            cats = groupedPerCategory.values()
+                    .stream()
+                    .filter(cat -> cat.getRecords().size() > 1)
+                    .collect(toList());
         }
 
         private void mergeAndDeduplicate() {
@@ -244,7 +258,7 @@ public class DailyCatTopAggregator {
         }
 
         private Double scoreByNews(PageViewRecordCategory cat) {
-            return newsService.search(cat.getCategory(), 2, 0, null)
+            return newsService.search(cat.getCategory(), 2, 0, null, false)
                     .stream()
                     .map(News::getScore)
                     .mapToDouble(Float::doubleValue)
@@ -273,8 +287,9 @@ public class DailyCatTopAggregator {
                 10, 2, 12,
                 newsService);
 
+        String day = "20170517";
         List<PageView> pageViews = Stream.of(ofNullable(new File("parsed/hourly")
-                .listFiles((dir, file) -> file.contains("20170519"))).orElse(new File[0]))
+                .listFiles((dir, file) -> file.contains(day))).orElse(new File[0]))
                 .map(file ->
                         new PageView()
                                 .setJsonOutDir("parsed/hourly")
@@ -283,6 +298,6 @@ public class DailyCatTopAggregator {
                 .peek(pv -> pv.searchForNews(newsService, 10, 3))
                 .collect(toList());
 
-        aggregator.aggregate("20170519", pageViews);
+        aggregator.aggregate(day, pageViews);
     }
 }

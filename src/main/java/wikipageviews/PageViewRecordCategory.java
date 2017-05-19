@@ -1,18 +1,21 @@
 package wikipageviews;
 
 import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.E;
+import static java.lang.Math.log;
 import static java.util.Comparator.comparing;
+import static java.util.Comparator.reverseOrder;
 
 public class PageViewRecordCategory {
     private final String category;
     private final String lang;
     private List<PageViewRecord> records;
     private double score;
-    private double newsScore;
+    private Double newsScore;
 
     public PageViewRecordCategory() {
         this.lang = "";
@@ -66,18 +69,20 @@ public class PageViewRecordCategory {
         records.sort(comparing(PageViewRecord::getScore).reversed());
     }
 
-    public void scoreRecords() {
+    public void scoreRecords(int maxSize, int maxPosition) {
         score = records.stream()
+                .filter(pvr -> pvr.getPosition() < maxPosition)
+                .limit(maxSize)
                 .mapToDouble(PageViewRecord::getScore)
                 .average()
-                .orElse(0) * Math.log(records.size()) * newsScore;
+                .orElse(0.0) * log(E + records.size()) * newsScore;
     }
 
-    public void setNewsScore(double newsScore) {
+    public void setNewsScore(Double newsScore) {
         this.newsScore = newsScore;
     }
 
-    public double getNewsScore() {
+    public Double getNewsScore() {
         return newsScore;
     }
 }
