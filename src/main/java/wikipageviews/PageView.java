@@ -32,7 +32,7 @@ import static java.util.Comparator.comparingInt;
 
 public class PageView {
     private final static Logger LOG = LoggerFactory.getLogger(PageView.class);
-    public static final Pattern FILE_NAME_PATTERN = Pattern.compile("pageviews-(\\d+)-(\\d+).gz");
+    public static final Pattern FILE_NAME_PATTERN = Pattern.compile("pageviews-(\\d+)-(\\d+)");
 
 
     private MainPageRate rate;
@@ -149,7 +149,7 @@ public class PageView {
     public String getDay() {
         Matcher matcher = FILE_NAME_PATTERN.matcher(
                 new File(file).getName());
-        if (matcher.matches()) {
+        if (matcher.find()) {
             return matcher.group(1);
         }
         return "--------";
@@ -159,7 +159,7 @@ public class PageView {
         try {
             Matcher matcher = FILE_NAME_PATTERN.matcher(
                     new File(file).getName());
-            if (matcher.matches()) {
+            if (matcher.find()) {
                 String day = matcher.group(1) + "T" + matcher.group(2);
                 return new SimpleDateFormat("yyyyMMdd'T'hhmmss").parse(day);
             }

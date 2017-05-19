@@ -12,7 +12,6 @@ import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.search.*;
-import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.SimpleFSDirectory;
 import org.slf4j.Logger;
@@ -25,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
@@ -37,6 +37,7 @@ public class NewsServiceImpl implements NewsService, Runnable {
 
     private final NewsFetcher fetcher;
     private final File newsStoreDir;
+    private final AtomicReference<DirectoryReader> readerRef;
     private boolean reindexAtStart;
     private final Directory newsIndexDir;
     private final Analyzer analyzer;
@@ -53,6 +54,19 @@ public class NewsServiceImpl implements NewsService, Runnable {
         }
         analyzer = new EnglishAnalyzer();
         queryParser = new StandardQueryParser(analyzer);
+        readerRef = new AtomicReference<>();
+        reopenReader();
+    }
+
+    private void reopenReader() {
+        try {
+            DirectoryReader reader = this.readerRef.getAndSet(DirectoryReader.open(this.newsIndexDir));
+            if (reader != null) {
+                reader.close();
+            }
+        } catch (IOException e) {
+            throw new IOError(e);
+        }
     }
 
     @PostConstruct
@@ -102,6 +116,7 @@ public class NewsServiceImpl implements NewsService, Runnable {
         Set<News> news = fetcher.fetchNews();
         writeJson(news);
         index(news);
+        reopenReader();
     }
 
     private void index(Set<News> news) {
@@ -135,7 +150,8 @@ public class NewsServiceImpl implements NewsService, Runnable {
 
     @Override
     public List<News> search(String queryStr, int limit, int daysSimilarity, Date date) {
-        try (IndexReader reader = DirectoryReader.open(newsIndexDir)) {
+        try {
+            DirectoryReader reader = readerRef.get();
             IndexSearcher searcher = new IndexSearcher(reader);
 
             BooleanQuery.Builder builder = new BooleanQuery.Builder();

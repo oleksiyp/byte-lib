@@ -1,20 +1,30 @@
 package wikipageviews;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.squareup.okhttp.OkHttpClient;
+import news_api.NewsApiFetcher;
 import news_service.News;
+import news_service.NewsFetcher;
 import news_service.NewsService;
+import news_service.NewsServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static java.lang.Math.E;
+import static java.lang.Math.log;
 import static java.lang.Math.max;
 import static java.util.Collections.singletonList;
 import static java.util.Comparator.comparing;
 import static java.util.Comparator.comparingInt;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toList;
 import static util.IOUtils.wrapIOException;
 
 public class DailyCatTopAggregator {
@@ -81,7 +91,6 @@ public class DailyCatTopAggregator {
     }
 
     private class Aggregator implements Runnable {
-        public final Comparator<PageViewRecordCategory> TOP_CATEGORIES_COMPARATOR = comparingInt(PageViewRecordCategory::getScoreRounded).reversed();
 
         private final List<PageView> pageViews;
 
@@ -108,11 +117,20 @@ public class DailyCatTopAggregator {
 
         private void newsScore() {
             for (PageViewRecord record : records) {
-                record.setScore(record.getScore() * scoreByNews(record));
+                double newsScore =
+                        record.getNews()
+                                .stream()
+                                .map(News::getScore)
+                                .mapToDouble(Float::doubleValue)
+                                .limit(2)
+                                .sum() + E;
+
+                record.setScore(record.getScore() * log(log(newsScore)));
             }
 
             for (PageViewRecordCategory category : cats) {
-                category.setNewsScore(scoreByNews(category));
+                double score = log(log(scoreByNews(category)) + E);
+                category.setNewsScore(score);
             }
 
             records.sort(comparing(PageViewRecord::getScore).reversed());
@@ -127,7 +145,7 @@ public class DailyCatTopAggregator {
                     .filter(pvr -> !categorizedRecords.contains(pvr))
                     .sorted(comparing(PageViewRecord::getScore).reversed())
                     .limit(max(topK - categorizedRecords.size(), 0))
-                    .collect(Collectors.toList()));
+                    .collect(toList()));
             if (!restCat.getRecords().isEmpty()) {
                 resultCats.add(restCat);
             }
@@ -195,7 +213,7 @@ public class DailyCatTopAggregator {
         private void scoreAndSortCats() {
             cats.forEach(PageViewRecordCategory::sortRecords);
             cats.forEach(PageViewRecordCategory::scoreRecords);
-            cats.sort(TOP_CATEGORIES_COMPARATOR);
+            cats.sort(comparingInt(PageViewRecordCategory::getScoreRounded).reversed());
         }
 
         private void groupCategories() {
@@ -226,21 +244,45 @@ public class DailyCatTopAggregator {
         }
 
         private Double scoreByNews(PageViewRecordCategory cat) {
-            return newsService.search(cat.getCategory(), 1, 0, null)
+            return newsService.search(cat.getCategory(), 2, 0, null)
                     .stream()
                     .map(News::getScore)
-                    .findFirst()
-                    .orElse(1.0f)
-                    .doubleValue();
+                    .mapToDouble(Float::doubleValue)
+                    .limit(2)
+                    .sum() + E;
         }
 
-        private Double scoreByNews(PageViewRecord record) {
-            return newsService.search(record.getLabel(), 1, 0, null)
-                    .stream()
-                    .map(News::getScore)
-                    .findFirst()
-                    .orElse(1.0f)
-                    .doubleValue();
-        }
+    }
+
+
+    public static void main(String[] args) {
+
+        NewsFetcher fetcher = new NewsApiFetcher(new OkHttpClient(),
+                Executors.newSingleThreadExecutor(),
+                "",
+                new String[0]);
+
+        NewsServiceImpl newsService = new NewsServiceImpl(fetcher,
+                new File("data/news/hourly"),
+                new File("data/news/index"),
+                false
+                );
+
+        DailyCatTopAggregator aggregator = new DailyCatTopAggregator(100,
+                "parsed/daily_cat",
+                10, 2, 12,
+                newsService);
+
+        List<PageView> pageViews = Stream.of(ofNullable(new File("parsed/hourly")
+                .listFiles((dir, file) -> file.contains("20170519"))).orElse(new File[0]))
+                .map(file ->
+                        new PageView()
+                                .setJsonOutDir("parsed/hourly")
+                                .setFile(file.getAbsolutePath()))
+                .peek(PageView::readHourlyJsonOut)
+                .peek(pv -> pv.searchForNews(newsService, 10, 3))
+                .collect(toList());
+
+        aggregator.aggregate("20170519", pageViews);
     }
 }

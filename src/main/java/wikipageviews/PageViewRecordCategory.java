@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.lang.Math.E;
 import static java.util.Comparator.comparing;
 
 public class PageViewRecordCategory {
