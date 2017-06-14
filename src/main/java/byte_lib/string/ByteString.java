@@ -1,8 +1,7 @@
 package byte_lib.string;
 
-import byte_lib.string.buf.ByteBuf;
+import byte_lib.buf.ByteBuf;
 
-import java.io.Closeable;
 import java.io.IOError;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -12,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static byte_lib.string.buf.ByteBuf.wrap;
+import static byte_lib.buf.ByteBuf.wrap;
 
 public class ByteString implements Comparable<ByteString>, AutoCloseable {
     public static final ByteString EMPTY = bs("");

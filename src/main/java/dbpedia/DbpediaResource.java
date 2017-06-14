@@ -5,9 +5,6 @@ import byte_lib.string.ByteStringBuilder;
 
 import static byte_lib.string.ByteString.bs;
 
-/**
- * Created by oleksiyp on 5/10/17.
- */
 public class DbpediaResource {
     public static final ByteString SPACE = bs(" ");
     private final ByteString lang;

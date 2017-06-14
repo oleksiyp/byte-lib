@@ -1,8 +1,8 @@
 package byte_lib.string;
 
 import byte_lib.io.ByteFiles;
-import byte_lib.string.buf.ByteBuf;
-import byte_lib.string.buf.BigByteBuf;
+import byte_lib.buf.ByteBuf;
+import byte_lib.buf.BigByteBuf;
 import org.junit.Before;
 import org.junit.Test;
 

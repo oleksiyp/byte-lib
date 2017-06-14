@@ -1,4 +1,4 @@
-package byte_lib.string.buf;
+package byte_lib.buf;
 
 import java.nio.*;
 

@@ -2,7 +2,7 @@ package byte_lib.io;
 
 import byte_lib.hashed.ByteStringMap;
 import byte_lib.string.ByteString;
-import byte_lib.string.buf.ByteBuf;
+import byte_lib.buf.ByteBuf;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream;
 import org.iq80.snappy.SnappyFramedInputStream;

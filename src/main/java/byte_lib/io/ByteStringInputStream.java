@@ -1,6 +1,6 @@
 package byte_lib.io;
 
-import byte_lib.string.buf.ByteBuf;
+import byte_lib.buf.ByteBuf;
 import byte_lib.string.ByteString;
 
 import java.io.*;

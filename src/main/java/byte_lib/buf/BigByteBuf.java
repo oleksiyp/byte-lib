@@ -1,4 +1,4 @@
-package byte_lib.string.buf;
+package byte_lib.buf;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
